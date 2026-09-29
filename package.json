@@ -1,0 +1,53 @@
+{
+  "name": "roomzoom",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:push": "prisma db push",
+    "db:seed": "node --env-file=.env.local --import tsx prisma/seed.ts",
+    "db:reset": "prisma db push --force-reset && npm run db:seed",
+    "import:rooms": "node --env-file=.env.local --import tsx scripts/import-rooms-csv.ts",
+    "import:desks": "node --env-file=.env.local --import tsx scripts/import-desks-csv.ts",
+    "import:floor": "node --env-file=.env.local --import tsx scripts/import-floor.ts",
+    "sync:directory": "node --env-file=.env.local --import tsx scripts/sync-directory.ts",
+    "ocr:floor": "node --env-file=.env.local --import tsx scripts/ocr-floor.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@radix-ui/react-dialog": "^1.1.23",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "fast-xml-parser": "^5.11.1",
+    "googleapis": "^181.0.0",
+    "lucide-react": "^1.47.0",
+    "next": "^16.3.6",
+    "next-auth": "^5.0.0-beta.32",
+    "papaparse": "^5.7.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-zoom-pan-pinch": "^4.2.0",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.2",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.6",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

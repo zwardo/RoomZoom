@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Google OAuth tokens, kept server-side so they never reach the browser.
+model GoogleAccount {
+  email        String   @id
+  accessToken  String
+  refreshToken String?
+  /// Epoch milliseconds.
+  expiresAt    BigInt?
+  scope        String?
+  updatedAt    DateTime @updatedAt
+}
+
+model Building {
+  id               String  @id @default(cuid())
+  name             String  @unique
+  googleBuildingId String? @unique
+  floors           Floor[]
+  rooms            Room[]
+}
+
+/// Coordinates for everything on a floor (rooms, desks, nav nodes) are in the
+/// floor image's pixel space. feetPerPixel turns them into real distances.
+model Floor {
+  id           String    @id @default(cuid())
+  buildingId   String
+  building     Building  @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  /// Matches Google's `floorName` (e.g. "2"), so Directory rooms link automatically.
+  name         String
+  /// Numeric level used for floor-change penalties. Defaults to parsed `name`.
+  level        Int       @default(0)
+  imagePath    String?
+  widthPx      Int       @default(0)
+  heightPx     Int       @default(0)
+  feetPerPixel Float?
+  rooms        Room[]
+  desks        Desk[]
+  navNodes     NavNode[]
+
+  @@unique([buildingId, name])
+}
+
+model Room {
+  id            String   @id @default(cuid())
+  resourceEmail String   @unique
+  /// Short display name, e.g. "Oak".
+  name          String
+  /// Google's generated name, e.g. "HQ-2-Oak (8) [TV]".
+  generatedName String?
+  buildingId    String
+  building      Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  floorId       String?
+  floor         Floor?   @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  capacity      Int?
+  /// JSON string array, e.g. ["TV","Whiteboard"].
+  features      String   @default("[]")
+  /// JSON array of [x, y] points in floor pixel space.
+  polygon       String?
+  doorX         Float?
+  doorY         Float?
+  /// "csv" | "directory" | "harvest" | "seed"
+  source        String   @default("csv")
+  updatedAt     DateTime @updatedAt
+  favorites     FavoriteRoom[]
+}
+
+/// Rooms a user starred in the Rooms tab.
+model FavoriteRoom {
+  userEmail String
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userEmail, roomId])
+}
+
+model Desk {
+  id      String @id @default(cuid())
+  floorId String
+  floor   Floor  @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  label   String
+  x       Float
+  y       Float
+
+  @@unique([floorId, label])
+}
+
+/// Imported desk assignments. The desk is resolved by label at query time so
+/// assignments survive re-annotating a floor.
+model Person {
+  email        String  @id
+  name         String?
+  deskLabel    String
+  /// Optional hints to disambiguate labels that repeat across floors.
+  buildingName String?
+  floorName    String?
+}
+
+model NavNode {
+  id           String    @id @default(cuid())
+  floorId      String
+  floor        Floor     @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  x            Float
+  y            Float
+  /// "hall" | "stairs" | "elevator"
+  type         String    @default("hall")
+  /// Stairs/elevator nodes that share a key are connected across floors.
+  connectorKey String?
+  edgesFrom    NavEdge[] @relation("from")
+  edgesTo      NavEdge[] @relation("to")
+}
+
+model NavEdge {
+  id     String  @id @default(cuid())
+  fromId String
+  toId   String
+  from   NavNode @relation("from", fields: [fromId], references: [id], onDelete: Cascade)
+  to     NavNode @relation("to", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
+}

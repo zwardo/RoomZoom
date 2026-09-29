@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Figma "Rooms" palette. Opacity steps (Light - 20, Accent - 30, ...) are
+   expressed with Tailwind modifiers, e.g. bg-rooms-light/20. */
+@theme {
+  --color-rooms-xdark: #09080e;
+  --color-rooms-dark: #1a1a2d;
+  --color-rooms-medium: #292946;
+  --color-rooms-bg-light: #39395b;
+  --color-rooms-xlight: #9186b2;
+  --color-rooms-light: #a78bfa;
+  --color-rooms-pale: #c4b5fd;
+  --color-rooms-xpale: #edeaff;
+  --color-rooms-accent: #8af0cb;
+  --color-rooms-warn: #ff6767;
+  --color-rooms-phone-booth: #ad56ba;
+  --color-rooms-non-bookable: #4737b2;
+}
+
+:root {
+  color-scheme: dark;
+
+  --background: var(--color-rooms-medium);
+  --foreground: var(--color-rooms-xpale);
+  --card: var(--color-rooms-xdark);
+  --card-foreground: var(--color-rooms-xpale);
+  --muted: var(--color-rooms-dark);
+  --muted-foreground: var(--color-rooms-xlight);
+  --border: color-mix(in srgb, var(--color-rooms-light) 30%, transparent);
+  --input: color-mix(in srgb, var(--color-rooms-light) 30%, transparent);
+  --ring: var(--color-rooms-light);
+  --primary: var(--color-rooms-light);
+  --primary-foreground: var(--color-rooms-xdark);
+  --secondary: color-mix(in srgb, var(--color-rooms-light) 20%, transparent);
+  --secondary-foreground: var(--color-rooms-light);
+  --accent: var(--color-rooms-accent);
+  --accent-foreground: var(--color-rooms-xdark);
+  --destructive: var(--color-rooms-warn);
+  --destructive-foreground: var(--color-rooms-xdark);
+  --success: var(--color-rooms-accent);
+  --warning: oklch(0.83 0.14 80);
+  --radius: 0.5rem;
+
+  /* Floor map */
+  --map-canvas: var(--color-rooms-xdark);
+  --map-outline: var(--color-rooms-medium);
+  --map-room: var(--color-rooms-medium);
+  --map-available: var(--color-rooms-accent);
+  --map-busy: var(--color-rooms-xlight);
+  --map-selected: var(--color-rooms-accent);
+  --map-desk: var(--color-rooms-accent);
+  --map-route: var(--color-rooms-accent);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-map-canvas: var(--map-canvas);
+  --color-map-outline: var(--map-outline);
+  --color-map-room: var(--map-room);
+  --color-map-available: var(--map-available);
+  --color-map-busy: var(--map-busy);
+  --color-map-selected: var(--map-selected);
+  --color-map-desk: var(--map-desk);
+  --color-map-route: var(--map-route);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* The whole UI is set in Roboto Mono, loaded via next/font in the root layout. */
+  --font-sans: var(--font-roboto-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: var(--font-roboto-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+}
