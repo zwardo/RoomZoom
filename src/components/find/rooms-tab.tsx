@@ -73,7 +73,7 @@ function SlotCell({
   onBook: () => void;
   onHover: (meetingId: string | null) => void;
 }) {
-  const tooSmall = status !== "booked" && room.capacity != null && room.capacity < meeting.acceptedCount;
+  const tooSmall = status === "available" && room.capacity != null && room.capacity < meeting.acceptedCount;
   const when = <LocalTimeRange start={meeting.start} end={meeting.end} />;
   const content = (
     <>
@@ -144,9 +144,9 @@ function RoomHeader({ room, favorite }: { room: RoomResult; favorite: { on: bool
     .filter(Boolean)
     .join(" · ");
   return (
-    <header className="sticky top-0 z-10 flex items-start gap-2 bg-rooms-xdark pt-1 pb-3">
+    <header className="sticky top-0 z-10 flex items-start gap-2 bg-rooms-xdark pb-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h3 className="truncate text-sm font-semibold text-white" title={`${room.name} · ${where}`}>
+        <h3 className="truncate text-sm leading-[18px] font-semibold text-white" title={`${room.name} · ${where}`}>
           {room.name}
         </h3>
         <p className="flex items-center gap-2 text-sm leading-4 text-rooms-xpale">
@@ -173,7 +173,7 @@ function RoomHeader({ room, favorite }: { room: RoomResult; favorite: { on: bool
         aria-label={favorite.on ? `Remove ${room.name} from favorites` : `Add ${room.name} to favorites`}
         aria-pressed={favorite.on}
         onClick={favorite.onToggle}
-        className="-mt-1 p-1 text-rooms-xpale aria-pressed:border-transparent aria-pressed:bg-transparent aria-pressed:text-rooms-accent [&_svg]:size-4"
+        className="p-1 text-rooms-xpale aria-pressed:border-transparent aria-pressed:bg-transparent aria-pressed:text-rooms-accent [&_svg]:size-4"
       >
         <Star className={cn(favorite.on && "fill-current")} />
       </IconButton>

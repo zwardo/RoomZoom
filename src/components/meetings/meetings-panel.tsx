@@ -85,7 +85,7 @@ export function MeetingsPanel({
         </IconButton>
       </div>
 
-      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-4" aria-busy={loading}>
+      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-1.5 pb-4" aria-busy={loading}>
         {pickerOpen && (
           <div id="meetings-date-picker" className="flex justify-center px-4 pb-2">
             <Calendar
