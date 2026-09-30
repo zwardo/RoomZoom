@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, LoaderCircle } from "lucide-react";
-import { useState } from "react";
+import { type Ref, useState } from "react";
 import { LocalDayLabel } from "@/components/local-time";
 import { Alert } from "@/components/ui/alert";
 import { FilterChip } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import { MeetingCard, NoMeetings } from "./meeting-card";
 /**
  * Figma "Meetings" panel: meetings grouped by day, or a single day once a date
  * is applied from the calendar picker.
+ *
+ * Each card's `<li>` carries `data-meeting-row` so the Rooms tab can line its
+ * rows up with the cards inside `scrollRef`.
  */
 export function MeetingsPanel({
   days,
@@ -20,10 +23,12 @@ export function MeetingsPanel({
   loading,
   error,
   selectedId,
+  highlightedId = null,
   onSelect,
   onDirections,
   date,
   onDateChange,
+  scrollRef,
 }: {
   /** Local midnights to render groups for, in order. */
   days: Date[];
@@ -31,11 +36,14 @@ export function MeetingsPanel({
   loading: boolean;
   error: string | null;
   selectedId: string | null;
+  /** Meeting shown in its Hover state, e.g. while its row is hovered in the Rooms tab. */
+  highlightedId?: string | null;
   onSelect: (view: MeetingView) => void;
   onDirections: (view: MeetingView) => void;
   /** The applied date filter, or null for the upcoming week. */
   date: Date | null;
   onDateChange: (date: Date | null) => void;
+  scrollRef?: Ref<HTMLDivElement>;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -47,11 +55,12 @@ export function MeetingsPanel({
 
   function renderCards(items: MeetingView[]) {
     return items.map((v) => (
-      <li key={v.meeting.id}>
+      <li key={v.meeting.id} data-meeting-row={v.meeting.id}>
         <MeetingCard
           meeting={v.meeting}
           location={v.location}
           selected={v.meeting.id === selectedId}
+          highlighted={v.meeting.id === highlightedId}
           onSelect={() => onSelect(v)}
           onDirections={() => onDirections(v)}
         />
@@ -76,7 +85,7 @@ export function MeetingsPanel({
         </IconButton>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-4" aria-busy={loading}>
+      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-4" aria-busy={loading}>
         {pickerOpen && (
           <div id="meetings-date-picker" className="flex justify-center px-4 pb-2">
             <Calendar

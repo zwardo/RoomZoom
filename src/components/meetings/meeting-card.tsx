@@ -30,12 +30,15 @@ export function MeetingCard({
   meeting,
   location,
   selected,
+  highlighted = false,
   onSelect,
   onDirections,
 }: {
   meeting: Meeting;
   location: RoomLocation | null;
   selected: boolean;
+  /** Shows the Hover state while the pointer is elsewhere, e.g. over this meeting's row in the Rooms tab. */
+  highlighted?: boolean;
   onSelect: () => void;
   onDirections?: () => void;
 }) {
@@ -48,7 +51,9 @@ export function MeetingCard({
         "group relative flex w-full items-start gap-5 overflow-clip rounded-lg border-2 border-transparent px-4 py-3 transition-colors",
         selected
           ? "border-rooms-accent bg-rooms-accent/20"
-          : cn(locked ? "bg-rooms-dark" : "bg-rooms-medium", "hover:border-rooms-light hover:bg-rooms-bg-light"),
+          : highlighted
+            ? "border-rooms-light bg-rooms-bg-light"
+            : cn(locked ? "bg-rooms-dark" : "bg-rooms-medium", "hover:border-rooms-light hover:bg-rooms-bg-light"),
       )}
     >
       <button
@@ -95,7 +100,11 @@ export function MeetingCard({
   );
 }
 
-/** Figma meeting-card "Empty" state. */
+/** Figma meeting-card "Empty" state. `data-empty-row` lets the Rooms tab grid fill the gap it leaves. */
 export function NoMeetings() {
-  return <p className="w-full px-4 py-1 text-center text-base leading-5 text-rooms-xpale opacity-75">No meetings</p>;
+  return (
+    <p data-empty-row className="w-full px-4 py-1 text-center text-base leading-5 text-rooms-xpale opacity-75">
+      No meetings
+    </p>
+  );
 }

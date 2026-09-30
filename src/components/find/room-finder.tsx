@@ -118,7 +118,10 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
   const [mapFloorId, setMapFloorId] = useState<string | null>(null);
   const [slotForm, setSlotForm] = useState<SlotForm>(defaultSlotForm);
   const [filters, setFilters] = useState<RoomFilters>(() => ({ ...DEFAULT_FILTERS, priority: loadPriority() }));
-  const [bookingRoom, setBookingRoom] = useState<RoomResult | null>(null);
+  /** A room to book, for `meeting` (a Rooms tab cell) or else the selected meeting or time slot. */
+  const [booking, setBooking] = useState<{ room: RoomResult; meeting?: Meeting } | null>(null);
+  const [hoveredMeetingId, setHoveredMeetingId] = useState<string | null>(null);
+  const [meetingsScroller, setMeetingsScroller] = useState<HTMLDivElement | null>(null);
   const [notice, setNotice] = useState<{ message: string; error?: boolean } | null>(null);
   const [searchReload, setSearchReload] = useState(0);
 
@@ -137,7 +140,7 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
   );
 
   const previous = meeting ? backToBackBefore(meeting, meetings.views ?? []) : null;
-  const needRoom = (visible ?? []).filter((v) => !v.meeting.rooms.length && v.meeting.canModify).map((v) => v.meeting);
+  const listed = visible?.map((v) => v.meeting) ?? [];
   const search = useRoomSearch(
     slot,
     filters,
@@ -145,7 +148,7 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
       include: meeting?.rooms.map((r) => r.email) ?? [],
       fromRoomId: previous?.location?.roomId ?? null,
       personal: view === "rooms",
-      cover: view === "rooms" ? needRoom.map((m) => ({ id: m.id, start: m.start, end: m.end })) : [],
+      cover: view === "rooms" ? listed.map((m) => ({ id: m.id, start: m.start, end: m.end })) : [],
     },
     searchReload,
   );
@@ -165,6 +168,7 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
       });
   };
   const selectedRoom = search.data?.rooms.find((r) => r.id === roomId) ?? null;
+  const bookingMeeting = booking ? (booking.meeting ?? meeting) : null;
 
   const today = new Date(openedAt).toDateString();
   const showsToday = !date || date.toDateString() === today;
@@ -217,6 +221,8 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
           loading={meetings.loading}
           error={meetings.error}
           selectedId={meetingId}
+          highlightedId={view === "rooms" ? hoveredMeetingId : null}
+          scrollRef={setMeetingsScroller}
           onSelect={(v) => selectMeeting(v.meeting.id === meetingId ? null : v)}
           onDirections={(v) => selectMeeting(v, { focusRoom: true })}
           date={date}
@@ -229,7 +235,10 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
         />
         <RoomsPanel
           view={view}
-          onViewChange={setView}
+          onViewChange={(v) => {
+            setView(v);
+            setHoveredMeetingId(null);
+          }}
           meeting={meeting}
           previousMeeting={search.data?.fromRoom && previous ? previous.meeting : null}
           onClearMeeting={() => selectMeeting(null)}
@@ -254,27 +263,33 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
           onMapFloorChange={setMapFloorId}
           onBook={(room) => {
             setNotice(null);
-            setBookingRoom(room);
+            setBooking({ room });
           }}
           isFavorite={isFavorite}
           onToggleFavorite={toggleFavorite}
-          coverMeetings={needRoom}
+          meetings={listed}
+          meetingsScroller={meetingsScroller}
+          onHoverMeeting={setHoveredMeetingId}
+          onBookSlot={(room, m) => {
+            setNotice(null);
+            setBooking({ room, meeting: m });
+          }}
           notice={notice && <Alert variant={notice.error ? "error" : undefined}>{notice.message}</Alert>}
         />
       </main>
       <BookDialog
-        room={bookingRoom}
-        start={slot.start.toISOString()}
-        end={slot.end.toISOString()}
-        meeting={meeting}
-        replaceExisting={Boolean(meeting?.rooms.length)}
-        onClose={() => setBookingRoom(null)}
+        room={booking?.room ?? null}
+        start={bookingMeeting?.start ?? slot.start.toISOString()}
+        end={bookingMeeting?.end ?? slot.end.toISOString()}
+        meeting={bookingMeeting}
+        replaceExisting={Boolean(bookingMeeting?.rooms.length)}
+        onClose={() => setBooking(null)}
         onBooked={(result) => {
-          setBookingRoom(null);
+          setBooking(null);
           setNotice(result);
           setSearchReload((k) => k + 1);
           setMeetingsReload((k) => k + 1);
-          if (!meeting) setMeetingId(result.meeting.id);
+          if (!bookingMeeting) setMeetingId(result.meeting.id);
         }}
       />
     </div>

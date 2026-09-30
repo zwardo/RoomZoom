@@ -1,147 +1,285 @@
 "use client";
 
+import { AlertTriangle, CircleCheck, Phone, Star, Users, Video } from "lucide-react";
 import type * as React from "react";
-import { RoomCard } from "@/components/rooms/room-card";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { LocalTimeRange } from "@/components/local-time";
+import { groupFeatures } from "@/components/rooms/room-card";
+import { Badge } from "@/components/ui/badge";
+import { IconButton } from "@/components/ui/icon-button";
+import type { Meeting } from "@/lib/calendar/types";
+import { roomColumns, type SlotStatus, slotStatus } from "@/lib/rooms/grid";
 import type { RoomResult, SearchResponse } from "@/lib/rooms/types";
-import { cn } from "@/lib/utils";
-import { AvailabilityTimeline } from "./availability-timeline";
+import { cn, formatFeet } from "@/lib/utils";
+import { type RowBox, useRowAlignment } from "./use-row-alignment";
 
-export interface CoverMeeting {
-  id: string;
-  title: string;
-  start: string;
-}
+const STATUS_LABEL: Record<SlotStatus, string> = {
+  booked: "Booked",
+  available: "Available",
+  busy: "Busy",
+  unknown: "Unknown",
+};
 
-const dayTime = new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
+/** Figma "room availability". Content sits 18px/14px in whatever the border width. */
+const STATUS_CLASS: Record<SlotStatus, string> = {
+  booked: "border-2 border-rooms-accent bg-rooms-accent/20 px-4 py-3",
+  available: "border border-rooms-light bg-rooms-light/10 px-[17px] py-[13px]",
+  busy: "border-2 border-rooms-warn/20 px-4 py-3",
+  unknown: "border-2 border-dashed border-rooms-light/30 px-4 py-3",
+};
 
-/**
- * One dot per meeting on the left that still needs a room: accent when this
- * room is free for it, warn outline when it's taken.
- */
-function MeetingCoverage({ meetings, freeFor }: { meetings: CoverMeeting[]; freeFor: string[] | null }) {
-  if (!meetings.length || !freeFor) return null;
-  const free = new Set(freeFor);
-  return (
-    <div className="flex items-center gap-2 text-xs text-rooms-xlight">
-      <ul className="flex flex-wrap gap-1" aria-hidden>
-        {meetings.map((m) => (
-          <li
-            key={m.id}
-            title={`${m.title} · ${dayTime.format(new Date(m.start))}: ${free.has(m.id) ? "free" : "taken"}`}
-            className={cn("size-2.5 rounded-full", free.has(m.id) ? "bg-rooms-accent" : "border border-rooms-warn/70")}
-          />
-        ))}
-      </ul>
-      <span>
-        Free for {meetings.filter((m) => free.has(m.id)).length} of {meetings.length}
-        <span className="sr-only"> meetings that need a room</span>
+function StatusChip({ status }: { status: SlotStatus }) {
+  if (status === "booked") {
+    return (
+      <span className="inline-flex h-6 items-center gap-2 text-sm font-medium text-rooms-accent">
+        Booked
+        <CircleCheck className="size-4" aria-hidden />
       </span>
-    </div>
-  );
-}
-
-function Column({ title, hint, rooms, children }: { title: string; hint: string; rooms: RoomResult[]; children: (room: RoomResult) => React.ReactNode }) {
+    );
+  }
   return (
-    <section aria-label={title} className="flex min-h-0 flex-col gap-3">
-      <header className="flex shrink-0 items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold text-rooms-xpale">{title}</h3>
-        <span className="text-xs text-rooms-xlight">{rooms.length}</span>
-      </header>
-      {rooms.length ? (
-        <ul className="flex min-h-0 flex-col gap-2 overflow-y-auto pb-1">{rooms.map((r) => <li key={r.id}>{children(r)}</li>)}</ul>
-      ) : (
-        <p className="rounded-lg border border-dashed border-rooms-light/30 p-4 text-center text-xs text-rooms-xlight">{hint}</p>
-      )}
-    </section>
+    <Badge
+      variant={status === "busy" ? "destructive" : status === "unknown" ? "outline" : "default"}
+      className={cn("h-6", status === "available" && "bg-rooms-light/20")}
+    >
+      {STATUS_LABEL[status]}
+    </Badge>
   );
 }
 
 /**
- * Rooms tab: favorites, then rooms from your recent meetings, then the best
- * matches for the current filters. Each room appears in one column only.
+ * One room's cell in a meeting's row. Free cells for meetings the user can
+ * change are buttons that book the room for that meeting.
+ */
+function SlotCell({
+  room,
+  meeting,
+  status,
+  bookable,
+  dimmed,
+  showMeeting,
+  style,
+  onBook,
+  onHover,
+}: {
+  room: RoomResult;
+  meeting: Meeting;
+  status: SlotStatus;
+  bookable: boolean;
+  dimmed: boolean;
+  /** Names the meeting in the cell, for when it isn't beside its meeting card. */
+  showMeeting: boolean;
+  style?: React.CSSProperties;
+  onBook: () => void;
+  onHover: (meetingId: string | null) => void;
+}) {
+  const tooSmall = status !== "booked" && room.capacity != null && room.capacity < meeting.acceptedCount;
+  const when = <LocalTimeRange start={meeting.start} end={meeting.end} />;
+  const content = (
+    <>
+      <span className="sr-only">
+        {bookable ? `Book ${room.name} for ` : `${room.name}, `}
+        {meeting.title}, {when}:{" "}
+      </span>
+      <span className="flex w-full items-center justify-between gap-2">
+        <StatusChip status={status} />
+        {tooSmall && (
+          <span title={`Seats ${room.capacity}, ${meeting.acceptedCount} accepted`} className="text-rooms-warn">
+            <AlertTriangle className="size-4" aria-hidden />
+            <span className="sr-only">
+              {" "}
+              (fits {room.capacity} of {meeting.acceptedCount})
+            </span>
+          </span>
+        )}
+      </span>
+      {showMeeting && (
+        <span className="flex flex-col gap-1 text-xs text-rooms-xpale" aria-hidden>
+          <span className="line-clamp-2 font-semibold">{meeting.title}</span>
+          {when}
+        </span>
+      )}
+    </>
+  );
+  const className = cn(
+    "flex w-full flex-col items-start gap-2 overflow-clip rounded-lg text-left transition-[background-color,opacity]",
+    STATUS_CLASS[status],
+    dimmed && "opacity-40",
+    style ? "absolute inset-x-0" : "min-h-28",
+  );
+  const hover = {
+    onPointerEnter: () => onHover(meeting.id),
+    onPointerLeave: () => onHover(null),
+  };
+
+  if (!bookable) {
+    return (
+      <div className={className} style={style} {...hover}>
+        {content}
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onBook}
+      onFocus={() => onHover(meeting.id)}
+      onBlur={() => onHover(null)}
+      className={cn(
+        className,
+        "hover:bg-rooms-light/20 hover:opacity-100 focus-visible:bg-rooms-light/20 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+      )}
+      style={style}
+      {...hover}
+    >
+      {content}
+    </button>
+  );
+}
+
+/** Figma room column header: name, seats and A/V icons, and the favorite star. */
+function RoomHeader({ room, favorite }: { room: RoomResult; favorite: { on: boolean; onToggle: () => void } }) {
+  const { media, phone } = groupFeatures(room.features);
+  const where = [room.buildingName, room.floorName && `Floor ${room.floorName}`, room.distanceFt != null && formatFeet(room.distanceFt)]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <header className="sticky top-0 z-10 flex items-start gap-2 bg-rooms-xdark pt-1 pb-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <h3 className="truncate text-sm font-semibold text-white" title={`${room.name} · ${where}`}>
+          {room.name}
+        </h3>
+        <p className="flex items-center gap-2 text-sm leading-4 text-rooms-xpale">
+          <span className="inline-flex items-center gap-1">
+            <Users className="size-4 text-rooms-light" aria-hidden />
+            {room.capacity ?? "?"}
+            <span className="sr-only"> seats</span>
+          </span>
+          {media.length > 0 && (
+            <span title={media.join(", ")}>
+              <Video className="size-4 text-rooms-light" aria-hidden />
+              <span className="sr-only">{media.join(", ")}</span>
+            </span>
+          )}
+          {phone.length > 0 && (
+            <span title={phone.join(", ")}>
+              <Phone className="size-4 text-rooms-light" aria-hidden />
+              <span className="sr-only">{phone.join(", ")}</span>
+            </span>
+          )}
+        </p>
+      </div>
+      <IconButton
+        aria-label={favorite.on ? `Remove ${room.name} from favorites` : `Add ${room.name} to favorites`}
+        aria-pressed={favorite.on}
+        onClick={favorite.onToggle}
+        className="-mt-1 p-1 text-rooms-xpale aria-pressed:border-transparent aria-pressed:bg-transparent aria-pressed:text-rooms-accent [&_svg]:size-4"
+      >
+        <Star className={cn(favorite.on && "fill-current")} />
+      </IconButton>
+    </header>
+  );
+}
+
+/**
+ * Rooms tab: one column per room (favorites, then rooms from recent meetings,
+ * then the best matches) and one row per meeting in the meetings list, level
+ * with its card. Each cell says whether the room is booked on, free, or busy
+ * for that meeting. Hovering a row highlights its meeting; a selected meeting's
+ * row is banded and the others fade.
  */
 export function RoomsTab({
   data,
-  selectedId,
-  needed,
+  meetings,
+  meetingsScroller,
+  selectedMeetingId,
   isFavorite,
   onToggleFavorite,
   freeOnly,
-  onFreeOnlyChange,
-  coverMeetings,
-  onSelect,
-  renderAction,
+  onHoverMeeting,
+  onBook,
 }: {
   data: SearchResponse;
-  selectedId: string | null;
-  needed?: number;
+  /** The meetings listed on the left, one row each. */
+  meetings: Meeting[];
+  /** The meetings list's scroll container, which the rows line up with. */
+  meetingsScroller: HTMLElement | null;
+  selectedMeetingId: string | null;
   isFavorite: (room: RoomResult) => boolean;
   onToggleFavorite: (room: RoomResult) => void;
   freeOnly: boolean;
-  onFreeOnlyChange: (freeOnly: boolean) => void;
-  /** Meetings on the left that still need a room. */
-  coverMeetings: CoverMeeting[];
-  onSelect: (room: RoomResult) => void;
-  renderAction: (room: RoomResult) => React.ReactNode;
+  onHoverMeeting: (meetingId: string | null) => void;
+  onBook: (room: RoomResult, meeting: Meeting) => void;
 }) {
-  const byId = new Map(data.rooms.map((r) => [r.id, r]));
-  const shown = (r: RoomResult | undefined): r is RoomResult => r !== undefined && (!freeOnly || r.available === true);
+  const [grid, setGrid] = useState<HTMLDivElement | null>(null);
+  const alignment = useRowAlignment(meetingsScroller, grid);
+  const [now] = useState(() => Date.now());
 
-  // Just-starred rooms first, then saved favorites (newest first), minus any just un-starred.
-  const saved = data.favoriteIds.map((id) => byId.get(id)).filter((r) => r !== undefined);
-  const starred = data.rooms.filter((r) => isFavorite(r) && !data.favoriteIds.includes(r.id));
-  const allFavorites = [...starred, ...saved.filter(isFavorite)];
-  const favorites = allFavorites.filter(shown);
-  const taken = new Set(allFavorites.map((r) => r.id));
-  const recent = data.recentIds.filter((id) => !taken.has(id)).map((id) => byId.get(id)).filter(shown);
-  recent.forEach((r) => taken.add(r.id));
-  const best = data.rooms.filter((r) => r.matches && !taken.has(r.id));
+  useEffect(() => {
+    grid?.scrollTo({ left: 0 });
+  }, [grid, selectedMeetingId]);
 
-  const card = (room: RoomResult) => (
-    <RoomCard
-      room={room}
-      selected={room.id === selectedId}
-      needed={needed}
-      favorite={{ on: isFavorite(room), onToggle: () => onToggleFavorite(room) }}
-      onSelect={() => onSelect(room)}
-      action={renderAction(room)}
-      stacked
-    >
-      <AvailabilityTimeline
-        busy={room.busy}
-        dayStart={data.window.dayStart}
-        dayEnd={data.window.dayEnd}
-        start={data.window.start}
-        end={data.window.end}
-      />
-      <MeetingCoverage meetings={coverMeetings} freeFor={room.freeFor} />
-    </RoomCard>
-  );
+  const columns = roomColumns(data, { isFavorite, freeOnly, rankByCoverage: !selectedMeetingId });
+  const covered = new Set(data.coveredIds);
+  const aligned = alignment?.mode === "aligned" ? alignment : null;
+  const selectedRow = selectedMeetingId ? aligned?.rows.get(selectedMeetingId) : undefined;
+  const rows = aligned ? meetings.filter((m) => aligned.rows.has(m.id)) : meetings;
+
+  const cells = (room: RoomResult) =>
+    rows.map((meeting) => {
+      const status = slotStatus(room, meeting, covered);
+      const box: RowBox | undefined = aligned?.rows.get(meeting.id);
+      return (
+        <li key={meeting.id}>
+          <SlotCell
+            room={room}
+            meeting={meeting}
+            status={status}
+            bookable={status === "available" && meeting.canModify && Date.parse(meeting.end) > now}
+            dimmed={selectedMeetingId !== null && meeting.id !== selectedMeetingId}
+            showMeeting={!aligned}
+            style={box && { top: box.top, height: box.height }}
+            onBook={() => onBook(room, meeting)}
+            onHover={onHoverMeeting}
+          />
+        </li>
+      );
+    });
+
+  if (!columns.length) {
+    return (
+      <p className="m-4 rounded-lg border border-dashed border-rooms-light/30 p-4 text-center text-xs text-rooms-xlight">
+        No rooms match these filters. Try a smaller group size or fewer features.
+      </p>
+    );
+  }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <Button size="sm" aria-pressed={freeOnly} onClick={() => onFreeOnlyChange(!freeOnly)}>
-          Free only
-        </Button>
-        {coverMeetings.length > 0 && (
-          <p className="flex items-center gap-2 text-xs text-rooms-xlight">
-            <span className="size-2.5 rounded-full bg-rooms-accent" aria-hidden />
-            Dots show which of your {coverMeetings.length} meetings without a room each room is free for
-          </p>
+    <div ref={setGrid} className="min-h-0 flex-1 overflow-auto overscroll-contain">
+      <div className="relative flex w-max" style={aligned ? { height: aligned.height } : undefined}>
+        {selectedRow && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 border-y border-rooms-accent/40 bg-rooms-accent/10"
+            style={{ top: selectedRow.top - 8, height: selectedRow.height + 16 }}
+          />
         )}
-      </div>
-      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto xl:grid-cols-3 xl:overflow-visible">
-        <Column title="Favorites" hint="Star a room to keep it here." rooms={favorites}>
-          {card}
-        </Column>
-        <Column title="Recent" hint="Rooms from your recent meetings show up here." rooms={recent}>
-          {card}
-        </Column>
-        <Column title="Best match" hint="No rooms match these filters. Try a smaller group size or fewer features." rooms={best}>
-          {card}
-        </Column>
+        {columns.map((room) => (
+          <section key={room.id} aria-label={room.name} className="relative w-52 shrink-0 border-r border-rooms-bg-light px-4">
+            <RoomHeader room={room} favorite={{ on: isFavorite(room), onToggle: () => onToggleFavorite(room) }} />
+            {aligned?.gaps.map((gap) => (
+              <div
+                key={gap.top}
+                aria-hidden
+                className="absolute inset-x-4 rounded-lg bg-rooms-dark"
+                style={{ top: gap.top, height: gap.height }}
+              />
+            ))}
+            {alignment && (
+              <ul className={cn(aligned ? "absolute inset-x-4 top-0" : "flex flex-col gap-4 pb-4")}>{cells(room)}</ul>
+            )}
+          </section>
+        ))}
       </div>
     </div>
   );
