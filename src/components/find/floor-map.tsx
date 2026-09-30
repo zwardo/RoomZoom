@@ -90,9 +90,14 @@ export function FloorMap({
               role="group"
               aria-label={`${floor.buildingName} floor ${floor.name} map`}
             >
-              {/* Imported plans are dark-on-white line drawings; invert them onto the dark canvas. */}
+              {/* Light plans are dark-on-white line drawings; invert them onto the dark canvas. */}
               {floor.imageUrl && (
-                <image href={floor.imageUrl} width={w} height={h} className="opacity-70 [filter:invert(1)_hue-rotate(180deg)_brightness(0.85)]" />
+                <image
+                  href={floor.imageUrl}
+                  width={w}
+                  height={h}
+                  className={cn(floor.imageTheme === "light" && "opacity-70 [filter:invert(1)_hue-rotate(180deg)_brightness(0.85)]")}
+                />
               )}
               {mapped.map((room) => {
                 const state = stateOf(room, selected?.id);

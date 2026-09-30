@@ -175,6 +175,7 @@ export async function searchRooms(
         buildingId: f.buildingId,
         buildingName: f.building.name,
         imageUrl: floorImageUrl(f),
+        imageTheme: f.imageTheme === "dark" ? "dark" : "light",
         widthPx: f.widthPx,
         heightPx: f.heightPx,
       }),

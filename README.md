@@ -8,11 +8,11 @@ Find and book meeting rooms near your desk. RoomZoom reads your Google Calendar,
 npm install
 cp .env.example .env.local        # then set AUTH_SECRET (openssl rand -base64 32)
 npm run db:push                   # create the SQLite database
-npm run db:seed                   # sample rooms, two demo floors of HQ, desk assignments
+npm run db:seed                   # sample rooms, two demo floors of HQ, Building 2 floor 4, desk assignments
 npm run dev
 ```
 
-Open <http://localhost:3000> and choose **Continue as demo user**. The demo calendar is simulated in memory (it resets when the server restarts), and the demo user sits at desk `2-114` on HQ floor 2.
+Open <http://localhost:3000> and choose **Continue as demo user**. The demo calendar is simulated in memory (it resets when the server restarts), and the demo user sits at desk `2-4046` on Building 2 floor 4.
 
 `npm run db:reset` wipes the database and re-seeds it.
 
@@ -61,6 +61,12 @@ If you know the drawing scale and scan resolution instead, pass `--scale 1/8 --d
 
 **From a traced SVG:** if you've already redrawn a floor as a vector, name its layers as above and import it directly. When the SVG has no embedded image, its own drawing (minus the annotation layers) becomes the map background.
 
+**Dark plans:** the map inverts backgrounds, assuming dark lines on white. A plan already drawn in the app's dark palette (like `prisma/floors/building-2-4.svg`, traced from the Figma frame) is shown as is with `--theme dark`:
+
+```bash
+npm run import:floor -- --building "Building 2" --floor 4 --svg prisma/floors/building-2-4.svg --theme dark
+```
+
 ### How distance works
 
 - **Walk:** the shortest route along the hallway graph from your desk to the room's door, drawn on the map when you select a room. A floor change adds `FLOOR_CHANGE_PENALTY_FT` (default 60 ft) per level.
@@ -80,6 +86,7 @@ src/lib/geo/             hallway-graph distance and desk lookup
 src/lib/ocr/             Cloud Vision OCR and starter SVG generation
 scripts/                 command-line imports and sync
 prisma/                  schema, seed, generated demo floors
+prisma/floors/           annotated floor plans the seed imports
 ```
 
 ## Checks

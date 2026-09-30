@@ -4,11 +4,14 @@ import { parseArgs } from "node:util";
 import { applyFloorAnnotation } from "@/lib/floors/apply";
 import { floorImageName, saveFloorImage } from "@/lib/floors/storage";
 import { feetPerPixelFromScale, parseFloorSvg, stripAnnotations } from "@/lib/floors/svg-annotations";
+import type { FloorImageTheme } from "@/lib/rooms/types";
 
 const USAGE = `Usage: npm run import:floor -- --building HQ --floor 2 --svg path/to/floor.svg [options]
 
   --image <file>            Background image (JPG/PNG). Defaults to the SVG's embedded
                             <image>, or the SVG itself with annotation layers removed.
+  --theme <light|dark>      "dark" for plans already drawn in the app's dark palette, shown
+                            without inverting. Default "light" (dark lines on white).
   --feet-per-pixel <n>      Override the scale.
   --scale <s> --dpi <n>     Scale from the drawing, e.g. --scale 1/8 (1/8" = 1'-0") or 1:100.
   --tolerance <px>          Snap distance for joining hallway lines (default 8).
@@ -22,6 +25,7 @@ const { values } = parseArgs({
     floor: { type: "string" },
     svg: { type: "string" },
     image: { type: "string" },
+    theme: { type: "string", default: "light" },
     "feet-per-pixel": { type: "string" },
     scale: { type: "string" },
     dpi: { type: "string" },
@@ -29,10 +33,11 @@ const { values } = parseArgs({
   },
 });
 
-if (!values.building || !values.floor || !values.svg) {
+if (!values.building || !values.floor || !values.svg || (values.theme !== "light" && values.theme !== "dark")) {
   console.error(USAGE);
   process.exit(1);
 }
+const imageTheme: FloorImageTheme = values.theme;
 
 const svgPath = path.resolve(values.svg);
 const svgText = readFileSync(svgPath, "utf8");
@@ -72,11 +77,12 @@ const result = await applyFloorAnnotation({
   floorName: values.floor,
   annotation,
   imagePath,
+  imageTheme,
   feetPerPixel,
   navTolerancePx: values.tolerance ? Number(values.tolerance) : undefined,
 });
 
-console.log(`Floor ${values.building} ${values.floor}: ${annotation.width}×${annotation.height}px, image ${imagePath}`);
+console.log(`Floor ${values.building} ${values.floor}: ${annotation.width}×${annotation.height}px, ${imageTheme} image ${imagePath}`);
 console.log(
   `  scale: ${result.feetPerPixel ? `${result.feetPerPixel.toFixed(4)} ft/px (${(annotation.width * result.feetPerPixel).toFixed(0)} ft wide)` : "none. Add a scale-<n>ft line or pass --feet-per-pixel"}`,
 );

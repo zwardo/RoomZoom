@@ -47,6 +47,9 @@ export interface RoomLocation {
   distanceMethod: DistanceMethod | null;
 }
 
+/** How a floor's background image is drawn: "light" plans get inverted onto the dark map. */
+export type FloorImageTheme = "light" | "dark";
+
 export interface FloorSummary {
   id: string;
   name: string;
@@ -54,6 +57,7 @@ export interface FloorSummary {
   buildingId: string;
   buildingName: string;
   imageUrl: string | null;
+  imageTheme: FloorImageTheme;
   widthPx: number;
   heightPx: number;
 }
