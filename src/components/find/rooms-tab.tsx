@@ -2,7 +2,7 @@
 
 import { AlertTriangle, CircleCheck, Phone, Star, Users, Video } from "lucide-react";
 import type * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LocalTimeRange } from "@/components/local-time";
 import { groupFeatures } from "@/components/rooms/room-card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,9 @@ const STATUS_CLASS: Record<SlotStatus, string> = {
   busy: "border-2 border-rooms-warn/20 px-4 py-3",
   unknown: "border-2 border-dashed border-rooms-light/30 px-4 py-3",
 };
+
+/** A row's band reaches halfway into the 16px gap on each side, for the selected highlight and hover. */
+const ROW_PAD = 8;
 
 function StatusChip({ status }: { status: SlotStatus }) {
   if (status === "booked") {
@@ -71,6 +74,7 @@ function SlotCell({
   showMeeting: boolean;
   style?: React.CSSProperties;
   onBook: () => void;
+  /** Keyboard focus; the grid tracks the pointer by row. */
   onHover: (meetingId: string | null) => void;
 }) {
   const tooSmall = status === "available" && room.capacity != null && room.capacity < meeting.acceptedCount;
@@ -107,14 +111,10 @@ function SlotCell({
     dimmed && "opacity-40",
     style ? "absolute inset-x-0" : "min-h-28",
   );
-  const hover = {
-    onPointerEnter: () => onHover(meeting.id),
-    onPointerLeave: () => onHover(null),
-  };
 
   if (!bookable) {
     return (
-      <div className={className} style={style} {...hover}>
+      <div className={className} style={style}>
         {content}
       </div>
     );
@@ -130,7 +130,6 @@ function SlotCell({
         "hover:bg-rooms-light/20 hover:opacity-100 focus-visible:bg-rooms-light/20 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
       )}
       style={style}
-      {...hover}
     >
       {content}
     </button>
@@ -215,6 +214,8 @@ export function RoomsTab({
   const [grid, setGrid] = useState<HTMLDivElement | null>(null);
   const alignment = useRowAlignment(meetingsScroller, grid);
   const [now] = useState(() => Date.now());
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+  const hoveredId = useRef<string | null>(null);
 
   useEffect(() => {
     grid?.scrollTo({ left: 0 });
@@ -225,6 +226,30 @@ export function RoomsTab({
   const aligned = alignment?.mode === "aligned" ? alignment : null;
   const selectedRow = selectedMeetingId ? aligned?.rows.get(selectedMeetingId) : undefined;
   const rows = aligned ? meetings.filter((m) => aligned.rows.has(m.id)) : meetings;
+
+  const hover = (meetingId: string | null) => {
+    if (hoveredId.current === meetingId) return;
+    hoveredId.current = meetingId;
+    onHoverMeeting(meetingId);
+  };
+
+  /** The meeting whose row, out to half the gap on each side, is under the pointer. Headers cover the rows they overlap. */
+  const rowAt = (x: number, y: number) => {
+    if (!grid || !aligned) return null;
+    const el = document.elementFromPoint(x, y);
+    if (!el || !grid.contains(el) || el.closest("header")) return null;
+    const top = y - grid.getBoundingClientRect().top + grid.scrollTop;
+    for (const [id, box] of aligned.rows) {
+      if (top >= box.top - ROW_PAD && top < box.top + box.height + ROW_PAD) return id;
+    }
+    return null;
+  };
+
+  const trackPointer = (e: React.PointerEvent) => {
+    if (e.pointerType === "touch") return;
+    pointer.current = { x: e.clientX, y: e.clientY };
+    hover(rowAt(e.clientX, e.clientY));
+  };
 
   const cells = (room: RoomResult) =>
     rows.map((meeting) => {
@@ -241,7 +266,7 @@ export function RoomsTab({
             showMeeting={!aligned}
             style={box && { top: box.top, height: box.height }}
             onBook={() => onBook(room, meeting)}
-            onHover={onHoverMeeting}
+            onHover={hover}
           />
         </li>
       );
@@ -256,13 +281,22 @@ export function RoomsTab({
   }
 
   return (
-    <div ref={setGrid} className="min-h-0 flex-1 overflow-auto overscroll-contain">
+    <div
+      ref={setGrid}
+      className="min-h-0 flex-1 overflow-auto overscroll-contain"
+      onPointerMove={trackPointer}
+      onPointerLeave={() => {
+        pointer.current = null;
+        hover(null);
+      }}
+      onScroll={() => pointer.current && hover(rowAt(pointer.current.x, pointer.current.y))}
+    >
       <div className="relative flex w-max" style={aligned ? { height: aligned.height } : undefined}>
         {selectedRow && (
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 border-y border-rooms-accent/40 bg-rooms-accent/10"
-            style={{ top: selectedRow.top - 8, height: selectedRow.height + 16 }}
+            style={{ top: selectedRow.top - ROW_PAD, height: selectedRow.height + 2 * ROW_PAD }}
           />
         )}
         {columns.map((room) => (
