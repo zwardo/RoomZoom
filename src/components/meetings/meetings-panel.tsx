@@ -1,18 +1,31 @@
 "use client";
 
 import { CalendarDays, LoaderCircle } from "lucide-react";
-import { useState } from "react";
+import { type ComponentProps, type Ref, useState } from "react";
 import { LocalDayLabel } from "@/components/local-time";
 import { Alert } from "@/components/ui/alert";
 import { FilterChip } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { IconButton } from "@/components/ui/icon-button";
 import type { MeetingView } from "@/lib/meetings/load";
+import { type HoveredMeeting, useIsMeetingHovered } from "./hovered-meeting";
 import { MeetingCard, NoMeetings } from "./meeting-card";
+
+/** Re-renders on its own when its meeting's hover changes, so hovering doesn't re-render the list. */
+function HoverableMeetingCard({
+  hovered,
+  ...props
+}: Omit<ComponentProps<typeof MeetingCard>, "highlighted"> & { hovered?: HoveredMeeting }) {
+  const highlighted = useIsMeetingHovered(hovered, props.meeting.id);
+  return <MeetingCard {...props} highlighted={highlighted} />;
+}
 
 /**
  * Figma "Meetings" panel: meetings grouped by day, or a single day once a date
  * is applied from the calendar picker.
+ *
+ * Each card's `<li>` carries `data-meeting-row` so the Rooms tab can line its
+ * rows up with the cards inside `scrollRef`.
  */
 export function MeetingsPanel({
   days,
@@ -20,10 +33,12 @@ export function MeetingsPanel({
   loading,
   error,
   selectedId,
+  hovered,
   onSelect,
   onDirections,
   date,
   onDateChange,
+  scrollRef,
 }: {
   /** Local midnights to render groups for, in order. */
   days: Date[];
@@ -31,11 +46,14 @@ export function MeetingsPanel({
   loading: boolean;
   error: string | null;
   selectedId: string | null;
+  /** The meeting shown in its Hover state, e.g. while its row is hovered in the Rooms tab. */
+  hovered?: HoveredMeeting;
   onSelect: (view: MeetingView) => void;
   onDirections: (view: MeetingView) => void;
   /** The applied date filter, or null for the upcoming week. */
   date: Date | null;
   onDateChange: (date: Date | null) => void;
+  scrollRef?: Ref<HTMLDivElement>;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -47,11 +65,12 @@ export function MeetingsPanel({
 
   function renderCards(items: MeetingView[]) {
     return items.map((v) => (
-      <li key={v.meeting.id}>
-        <MeetingCard
+      <li key={v.meeting.id} data-meeting-row={v.meeting.id}>
+        <HoverableMeetingCard
           meeting={v.meeting}
           location={v.location}
           selected={v.meeting.id === selectedId}
+          hovered={hovered}
           onSelect={() => onSelect(v)}
           onDirections={() => onDirections(v)}
         />
@@ -76,7 +95,7 @@ export function MeetingsPanel({
         </IconButton>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-4" aria-busy={loading}>
+      <div ref={scrollRef} className="scrollbar-auto-hide flex min-h-0 flex-1 flex-col overflow-y-auto pt-1.5 pb-4" aria-busy={loading}>
         {pickerOpen && (
           <div id="meetings-date-picker" className="flex justify-center px-4 pb-2">
             <Calendar

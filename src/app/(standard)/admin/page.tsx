@@ -54,7 +54,7 @@ export default async function AdminPage() {
             Import or re-import a floor with <code>npm run import:floor</code>. See the README section on floor plans.
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="scrollbar-auto-hide overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-xs text-muted-foreground">
               <tr className="border-b">

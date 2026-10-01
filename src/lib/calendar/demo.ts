@@ -184,7 +184,7 @@ export class DemoCalendarProvider implements CalendarProvider {
   async addRoomToMeeting(input: AddRoomInput) {
     const meeting = await this.getMeeting(input.eventId);
     if (!meeting) throw new HttpError(404, "Meeting not found");
-    if (!meeting.canModify) throw new HttpError(403, "Only the organizer can add a room to this meeting.");
+    if (!meeting.canModify) throw new HttpError(403, "Only the organizer can book a room for this meeting.");
     if (input.replaceExisting) meeting.rooms = [];
     meeting.rooms = meeting.rooms.filter((r) => r.email !== input.roomEmail);
     meeting.rooms.push({ email: input.roomEmail, name: input.roomName, status: "accepted" });
