@@ -170,7 +170,7 @@ const RoomHeader = memo(function RoomHeader({
     .filter(Boolean)
     .join(" · ");
   return (
-    <header className="sticky top-0 z-10 flex items-start gap-2 bg-rooms-xdark pb-3">
+    <header data-grid-header className="sticky top-0 z-10 flex items-start gap-2 bg-rooms-xdark px-4 pb-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <Tooltip content={where ? `${room.name} · ${where}` : room.name} align="start">
           <h3 className="truncate text-sm leading-[18px] font-semibold text-white">{room.name}</h3>
@@ -341,7 +341,7 @@ export function RoomsTab({
           <div aria-hidden className="pointer-events-none absolute inset-x-0 bg-rooms-accent/10" style={bandStyle(hoveredRow)} />
         )}
         {columns.map((room) => (
-          <section key={room.id} aria-label={room.name} className="relative w-52 shrink-0 border-r border-rooms-bg-light px-4">
+          <section key={room.id} aria-label={room.name} className="relative w-52 shrink-0 border-r border-rooms-bg-light">
             <RoomHeader room={room} favorite={isFavorite(room)} onToggleFavorite={onToggleFavorite} />
             {aligned?.gaps.map((gap) => (
               <div
@@ -352,7 +352,7 @@ export function RoomsTab({
               />
             ))}
             {alignment && (
-              <ul className={cn(aligned ? "absolute inset-x-4 top-0" : "flex flex-col gap-4 pb-4")}>{cells(room)}</ul>
+              <ul className={cn(aligned ? "absolute inset-x-4 top-0" : "flex flex-col gap-4 px-4 pb-4")}>{cells(room)}</ul>
             )}
           </section>
         ))}

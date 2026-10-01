@@ -21,13 +21,21 @@ export type RowAlignment =
     };
 
 const ROWS = "[data-meeting-row],[data-empty-row]";
+/** The grid's sticky header, which the first row has to start below. */
+const HEADER = "[data-grid-header]";
+/**
+ * Extra top padding on the meetings list, so its first card (and so the first
+ * row) clears the grid's header; the list reads it in its `padding-top`.
+ */
+const HEADER_INSET_VAR = "--grid-header-inset";
 /** The meetings list's gap between cards (gap-4). */
 const ROW_GAP = 16;
 
-function measure(source: HTMLElement, target: HTMLElement): RowAlignment {
+/** The alignment, and how far the first row reaches up under the grid's header (negative when it clears it, null with no rows). */
+function measure(source: HTMLElement, target: HTMLElement): [RowAlignment, number | null] {
   const s = source.getBoundingClientRect();
   const t = target.getBoundingClientRect();
-  if (s.right > t.left) return { mode: "stacked" };
+  if (s.right > t.left) return [{ mode: "stacked" }, null];
 
   // A card's top in the grid's content once both panels share a scrollTop.
   const shift = source.scrollTop - t.top;
@@ -38,10 +46,12 @@ function measure(source: HTMLElement, target: HTMLElement): RowAlignment {
   // The run of empty days since the last meeting, if any.
   let emptyTop: number | null = null;
   let emptyBottom = 0;
+  let firstTop = Infinity;
   for (const el of source.querySelectorAll<HTMLElement>(ROWS)) {
     const r = el.getBoundingClientRect();
     const box = { top: r.top + shift, height: r.height };
     bottom = Math.max(bottom, box.top + box.height);
+    firstTop = Math.min(firstTop, box.top);
     const id = el.dataset.meetingRow;
     if (id === undefined) {
       emptyTop ??= prevBottom != null ? prevBottom + ROW_GAP : box.top;
@@ -56,7 +66,9 @@ function measure(source: HTMLElement, target: HTMLElement): RowAlignment {
   if (emptyTop != null) gaps.push({ top: emptyTop, height: emptyBottom - emptyTop });
 
   const height = Math.max(source.scrollHeight - source.clientHeight + target.clientHeight, bottom + ROW_GAP);
-  return { mode: "aligned", rows, gaps, height: Math.round(height) };
+  const header = target.querySelector<HTMLElement>(HEADER)?.offsetHeight ?? 0;
+  const overlap = Number.isFinite(firstTop) ? header - firstTop : null;
+  return [{ mode: "aligned", rows, gaps, height: Math.round(height) }, overlap];
 }
 
 function signature(a: RowAlignment | null) {
@@ -69,7 +81,10 @@ function signature(a: RowAlignment | null) {
 /**
  * Lines the grid's rows up with the `[data-meeting-row]` cards in the meetings
  * list (`source`) and scrolls the two together, so each row sits beside its
- * meeting. Returns null until the first measurement.
+ * meeting. When the first card would sit level with the grid's sticky
+ * `[data-grid-header]` (e.g. a date filter leaves only a chip above it), the
+ * list is padded down via `HEADER_INSET_VAR` so the row starts below the
+ * header instead of under it. Returns null until the first measurement.
  */
 export function useRowAlignment(source: HTMLElement | null, target: HTMLElement | null): RowAlignment | null {
   const [alignment, setAlignment] = useState<RowAlignment | null>(null);
@@ -77,8 +92,17 @@ export function useRowAlignment(source: HTMLElement | null, target: HTMLElement 
   useEffect(() => {
     if (!source || !target) return;
     let frame = 0;
+    let inset = 0;
     const update = () => {
-      const next = measure(source, target);
+      const [first, overlap] = measure(source, target);
+      // The inset moves every row by the same amount, so one correction lands it.
+      const needed = overlap === null ? 0 : Math.max(0, Math.ceil(inset + overlap));
+      let next = first;
+      if (needed !== inset) {
+        inset = needed;
+        source.style.setProperty(HEADER_INSET_VAR, `${inset}px`);
+        [next] = measure(source, target);
+      }
       setAlignment((prev) => (signature(prev) === signature(next) ? prev : next));
     };
     const schedule = () => {
@@ -91,6 +115,8 @@ export function useRowAlignment(source: HTMLElement | null, target: HTMLElement 
       resize.disconnect();
       resize.observe(source);
       resize.observe(target);
+      const header = target.querySelector(HEADER);
+      if (header) resize.observe(header);
       source.querySelectorAll(ROWS).forEach((el) => resize.observe(el));
     };
     const mutation = new MutationObserver(() => {
@@ -104,6 +130,7 @@ export function useRowAlignment(source: HTMLElement | null, target: HTMLElement 
       cancelAnimationFrame(frame);
       resize.disconnect();
       mutation.disconnect();
+      source.style.removeProperty(HEADER_INSET_VAR);
     };
   }, [source, target]);
 
