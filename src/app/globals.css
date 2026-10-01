@@ -91,13 +91,38 @@
   --font-mono: var(--font-roboto-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* Keeps the scrollbar's space but hides it until the area is hovered or
-   scrolling (`data-scrolling`, set by <ScrollActivity />). */
+/* Figma "scrollbar": an 8px XPale bar with no track, at 40% and 60% (hovered
+   or dragged). It keeps its space but stays hidden until the area is hovered
+   or scrolling (`data-scrolling`, set by <ScrollActivity />). */
 @utility scrollbar-auto-hide {
-  scrollbar-color: transparent transparent;
+  --scrollbar-thumb: transparent;
   &:hover,
   &[data-scrolling] {
-    scrollbar-color: auto;
+    --scrollbar-thumb: color-mix(in srgb, var(--color-rooms-xpale) 40%, transparent);
+  }
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+  }
+  &::-webkit-scrollbar-track,
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: var(--scrollbar-thumb);
+  }
+  &::-webkit-scrollbar-thumb:hover,
+  &::-webkit-scrollbar-thumb:active {
+    background: color-mix(in srgb, var(--color-rooms-xpale) 60%, transparent);
+  }
+
+  /* Firefox has no ::-webkit-scrollbar; Chrome ignores it once scrollbar-color is set. */
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
 }
 
