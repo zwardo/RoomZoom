@@ -300,7 +300,7 @@ export function RoomsTab({
   return (
     <div
       ref={setGrid}
-      className="min-h-0 flex-1 overflow-auto overscroll-contain"
+      className="scrollbar-auto-hide min-h-0 flex-1 overflow-auto overscroll-contain"
       onPointerMove={trackPointer}
       onPointerLeave={() => {
         pointer.current = null;

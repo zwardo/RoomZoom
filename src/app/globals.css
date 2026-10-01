@@ -91,6 +91,16 @@
   --font-mono: var(--font-roboto-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* Keeps the scrollbar's space but hides it until the area is hovered or
+   scrolling (`data-scrolling`, set by <ScrollActivity />). */
+@utility scrollbar-auto-hide {
+  scrollbar-color: transparent transparent;
+  &:hover,
+  &[data-scrolling] {
+    scrollbar-color: auto;
+  }
+}
+
 @layer base {
   * {
     border-color: var(--border);
