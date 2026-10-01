@@ -3,6 +3,7 @@
 import { LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { AppHeader, type HeaderUser } from "@/components/app-header";
+import { createHoveredMeeting } from "@/components/meetings/hovered-meeting";
 import { MeetingsPanel } from "@/components/meetings/meetings-panel";
 import { Alert } from "@/components/ui/alert";
 import { estimateSteps, StepsChip } from "@/components/steps-chip";
@@ -120,7 +121,7 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
   const [filters, setFilters] = useState<RoomFilters>(() => ({ ...DEFAULT_FILTERS, priority: loadPriority() }));
   /** A room to book, for `meeting` (a Rooms tab cell) or else the selected meeting or time slot. */
   const [booking, setBooking] = useState<{ room: RoomResult; meeting?: Meeting } | null>(null);
-  const [hoveredMeetingId, setHoveredMeetingId] = useState<string | null>(null);
+  const [hoveredMeeting] = useState(createHoveredMeeting);
   const [meetingsScroller, setMeetingsScroller] = useState<HTMLDivElement | null>(null);
   const [notice, setNotice] = useState<{ message: string; error?: boolean } | null>(null);
   const [searchReload, setSearchReload] = useState(0);
@@ -221,7 +222,7 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
           loading={meetings.loading}
           error={meetings.error}
           selectedId={meetingId}
-          highlightedId={view === "rooms" ? hoveredMeetingId : null}
+          hovered={hoveredMeeting}
           scrollRef={setMeetingsScroller}
           onSelect={(v) => selectMeeting(v.meeting.id === meetingId ? null : v)}
           onDirections={(v) => selectMeeting(v, { focusRoom: true })}
@@ -237,7 +238,7 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
           view={view}
           onViewChange={(v) => {
             setView(v);
-            setHoveredMeetingId(null);
+            hoveredMeeting.set(null);
           }}
           meeting={meeting}
           previousMeeting={search.data?.fromRoom && previous ? previous.meeting : null}
@@ -269,7 +270,7 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
           onToggleFavorite={toggleFavorite}
           meetings={listed}
           meetingsScroller={meetingsScroller}
-          onHoverMeeting={setHoveredMeetingId}
+          hoveredMeeting={hoveredMeeting}
           onBookSlot={(room, m) => {
             setNotice(null);
             setBooking({ room, meeting: m });

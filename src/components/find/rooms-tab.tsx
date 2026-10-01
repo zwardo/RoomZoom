@@ -2,8 +2,9 @@
 
 import { AlertTriangle, CircleCheck, Phone, Star, Users, Video } from "lucide-react";
 import type * as React from "react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { LocalTimeRange } from "@/components/local-time";
+import { type HoveredMeeting, useHoveredMeetingId } from "@/components/meetings/hovered-meeting";
 import { groupFeatures } from "@/components/rooms/room-card";
 import { Badge } from "@/components/ui/badge";
 import { IconButton } from "@/components/ui/icon-button";
@@ -52,16 +53,17 @@ function StatusChip({ status }: { status: SlotStatus }) {
 
 /**
  * One room's cell in a meeting's row. Free cells for meetings the user can
- * change are buttons that book the room for that meeting.
+ * change are buttons that book the room for that meeting. Memoized so a hover
+ * re-renders only the rows whose dimming changes.
  */
-function SlotCell({
+const SlotCell = memo(function SlotCell({
   room,
   meeting,
   status,
   bookable,
   dimmed,
   showMeeting,
-  style,
+  box,
   onBook,
   onHover,
 }: {
@@ -72,11 +74,13 @@ function SlotCell({
   dimmed: boolean;
   /** Names the meeting in the cell, for when it isn't beside its meeting card. */
   showMeeting: boolean;
-  style?: React.CSSProperties;
-  onBook: () => void;
+  /** Where the row sits when it's level with its meeting card. */
+  box?: RowBox;
+  onBook: (room: RoomResult, meeting: Meeting) => void;
   /** Keyboard focus; the grid tracks the pointer by row. */
   onHover: (meetingId: string | null) => void;
 }) {
+  const style = box && { top: box.top, height: box.height };
   const tooSmall = status === "available" && room.capacity != null && room.capacity < meeting.acceptedCount;
   const when = <LocalTimeRange start={meeting.start} end={meeting.end} />;
   const content = (
@@ -106,7 +110,7 @@ function SlotCell({
     </>
   );
   const className = cn(
-    "flex w-full flex-col items-start gap-2 overflow-clip rounded-lg text-left transition-[background-color,opacity]",
+    "flex w-full flex-col items-start gap-2 overflow-clip rounded-lg text-left transition-colors",
     STATUS_CLASS[status],
     dimmed && "opacity-40",
     style ? "absolute inset-x-0" : "min-h-28",
@@ -122,7 +126,7 @@ function SlotCell({
   return (
     <button
       type="button"
-      onClick={onBook}
+      onClick={() => onBook(room, meeting)}
       onFocus={() => onHover(meeting.id)}
       onBlur={() => onHover(null)}
       className={cn(
@@ -134,10 +138,18 @@ function SlotCell({
       {content}
     </button>
   );
-}
+});
 
 /** Figma room column header: name, seats and A/V icons, and the favorite star. */
-function RoomHeader({ room, favorite }: { room: RoomResult; favorite: { on: boolean; onToggle: () => void } }) {
+const RoomHeader = memo(function RoomHeader({
+  room,
+  favorite,
+  onToggleFavorite,
+}: {
+  room: RoomResult;
+  favorite: boolean;
+  onToggleFavorite: (room: RoomResult) => void;
+}) {
   const { media, phone } = groupFeatures(room.features);
   const where = [room.buildingName, room.floorName && `Floor ${room.floorName}`, room.distanceFt != null && formatFeet(room.distanceFt)]
     .filter(Boolean)
@@ -169,15 +181,20 @@ function RoomHeader({ room, favorite }: { room: RoomResult; favorite: { on: bool
         </p>
       </div>
       <IconButton
-        aria-label={favorite.on ? `Remove ${room.name} from favorites` : `Add ${room.name} to favorites`}
-        aria-pressed={favorite.on}
-        onClick={favorite.onToggle}
+        aria-label={favorite ? `Remove ${room.name} from favorites` : `Add ${room.name} to favorites`}
+        aria-pressed={favorite}
+        onClick={() => onToggleFavorite(room)}
         className="p-1 text-rooms-xpale aria-pressed:border-transparent aria-pressed:bg-transparent aria-pressed:text-rooms-accent [&_svg]:size-4"
       >
-        <Star className={cn(favorite.on && "fill-current")} />
+        <Star className={cn(favorite && "fill-current")} />
       </IconButton>
     </header>
   );
+});
+
+/** A row's band, reaching halfway into the gap on each side. */
+function bandStyle(row: RowBox): React.CSSProperties {
+  return { top: row.top - ROW_PAD, height: row.height + 2 * ROW_PAD };
 }
 
 /**
@@ -185,8 +202,9 @@ function RoomHeader({ room, favorite }: { room: RoomResult; favorite: { on: bool
  * then the best matches, which lead once a meeting is selected) and one row
  * per meeting in the meetings list, level
  * with its card. Each cell says whether the room is booked on, free, or busy
- * for that meeting. Hovering a row highlights its meeting; a selected meeting's
- * row is banded and the others fade.
+ * for that meeting. A selected meeting's row is banded and the others fade;
+ * hovering a row highlights its meeting and gives the row the same band,
+ * without the border.
  */
 export function RoomsTab({
   data,
@@ -196,7 +214,7 @@ export function RoomsTab({
   isFavorite,
   onToggleFavorite,
   freeOnly,
-  onHoverMeeting,
+  hovered,
   onBook,
 }: {
   data: SearchResponse;
@@ -208,30 +226,29 @@ export function RoomsTab({
   isFavorite: (room: RoomResult) => boolean;
   onToggleFavorite: (room: RoomResult) => void;
   freeOnly: boolean;
-  onHoverMeeting: (meetingId: string | null) => void;
+  /** Set to the meeting whose row is under the pointer or has focus. */
+  hovered: HoveredMeeting;
   onBook: (room: RoomResult, meeting: Meeting) => void;
 }) {
   const [grid, setGrid] = useState<HTMLDivElement | null>(null);
   const alignment = useRowAlignment(meetingsScroller, grid);
   const [now] = useState(() => Date.now());
   const pointer = useRef<{ x: number; y: number } | null>(null);
-  const hoveredId = useRef<string | null>(null);
+  const hoveredId = useHoveredMeetingId(hovered);
+  const hover = hovered.set;
 
   useEffect(() => {
     grid?.scrollTo({ left: 0 });
   }, [grid, selectedMeetingId]);
 
+  useEffect(() => () => hovered.set(null), [hovered]);
+
   const columns = roomColumns(data, { isFavorite, freeOnly, meetingSelected: selectedMeetingId !== null });
   const covered = new Set(data.coveredIds);
   const aligned = alignment?.mode === "aligned" ? alignment : null;
   const selectedRow = selectedMeetingId ? aligned?.rows.get(selectedMeetingId) : undefined;
+  const hoveredRow = hoveredId && hoveredId !== selectedMeetingId ? aligned?.rows.get(hoveredId) : undefined;
   const rows = aligned ? meetings.filter((m) => aligned.rows.has(m.id)) : meetings;
-
-  const hover = (meetingId: string | null) => {
-    if (hoveredId.current === meetingId) return;
-    hoveredId.current = meetingId;
-    onHoverMeeting(meetingId);
-  };
 
   /** The meeting whose row, out to half the gap on each side, is under the pointer. Headers cover the rows they overlap. */
   const rowAt = (x: number, y: number) => {
@@ -262,10 +279,10 @@ export function RoomsTab({
             meeting={meeting}
             status={status}
             bookable={status === "available" && meeting.canModify && Date.parse(meeting.end) > now}
-            dimmed={selectedMeetingId !== null && meeting.id !== selectedMeetingId}
+            dimmed={selectedMeetingId !== null && meeting.id !== selectedMeetingId && meeting.id !== hoveredId}
             showMeeting={!aligned}
-            style={box && { top: box.top, height: box.height }}
-            onBook={() => onBook(room, meeting)}
+            box={box}
+            onBook={onBook}
             onHover={hover}
           />
         </li>
@@ -296,12 +313,15 @@ export function RoomsTab({
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 border-y border-rooms-accent/40 bg-rooms-accent/10"
-            style={{ top: selectedRow.top - ROW_PAD, height: selectedRow.height + 2 * ROW_PAD }}
+            style={bandStyle(selectedRow)}
           />
+        )}
+        {hoveredRow && (
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bg-rooms-accent/10" style={bandStyle(hoveredRow)} />
         )}
         {columns.map((room) => (
           <section key={room.id} aria-label={room.name} className="relative w-52 shrink-0 border-r border-rooms-bg-light px-4">
-            <RoomHeader room={room} favorite={{ on: isFavorite(room), onToggle: () => onToggleFavorite(room) }} />
+            <RoomHeader room={room} favorite={isFavorite(room)} onToggleFavorite={onToggleFavorite} />
             {aligned?.gaps.map((gap) => (
               <div
                 key={gap.top}

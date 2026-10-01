@@ -2,6 +2,7 @@
 
 import { Footprints, LoaderCircle, Lock } from "lucide-react";
 import { LocalTimeRange } from "@/components/local-time";
+import type { HoveredMeeting } from "@/components/meetings/hovered-meeting";
 import { RoomCard } from "@/components/rooms/room-card";
 import { Alert } from "@/components/ui/alert";
 import { Badge, FilterChip } from "@/components/ui/badge";
@@ -45,7 +46,7 @@ export function RoomsPanel({
   onToggleFavorite,
   meetings,
   meetingsScroller,
-  onHoverMeeting,
+  hoveredMeeting,
   onBookSlot,
   notice,
 }: {
@@ -75,7 +76,7 @@ export function RoomsPanel({
   meetings: Meeting[];
   /** The meetings list's scroll container, which the Rooms tab rows line up with. */
   meetingsScroller: HTMLElement | null;
-  onHoverMeeting: (meetingId: string | null) => void;
+  hoveredMeeting: HoveredMeeting;
   /** Books a room for one of the listed meetings (a cell in the Rooms tab). */
   onBookSlot: (room: RoomResult, meeting: Meeting) => void;
   notice: React.ReactNode;
@@ -235,7 +236,7 @@ export function RoomsPanel({
               isFavorite={isFavorite}
               onToggleFavorite={onToggleFavorite}
               freeOnly={filters.availableOnly}
-              onHoverMeeting={onHoverMeeting}
+              hovered={hoveredMeeting}
               onBook={onBookSlot}
             />
           </div>

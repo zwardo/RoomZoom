@@ -48,7 +48,7 @@ export function MeetingCard({
   return (
     <div
       className={cn(
-        "group relative flex w-full items-start gap-5 overflow-clip rounded-lg border-2 border-transparent px-4 py-3 transition-colors",
+        "group relative flex w-full items-start gap-5 overflow-clip rounded-lg border-2 border-transparent px-4 py-3",
         selected
           ? "border-rooms-accent bg-rooms-accent/20"
           : highlighted
