@@ -5,6 +5,7 @@ import Image from "next/image";
 import { LocalTimeRange } from "@/components/local-time";
 import { LocationMeta } from "@/components/rooms/location-meta";
 import { MetaList } from "@/components/ui/meta-list";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { Meeting } from "@/lib/calendar/types";
 import type { RoomLocation } from "@/lib/rooms/types";
 import { cn } from "@/lib/utils";
@@ -87,15 +88,17 @@ export function MeetingCard({
       <p className="pointer-events-none flex h-6 shrink-0 items-center text-sm text-rooms-xpale">
         <LocalTimeRange start={meeting.start} end={meeting.end} />
       </p>
-      <button
-        type="button"
-        onClick={onDirections}
-        disabled={!hasRoom || !onDirections}
-        aria-label={`Directions to ${meeting.rooms[0]?.name ?? "the room"}`}
-        className="absolute right-4 bottom-3 rounded-md p-0.5 transition-colors hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-30"
-      >
-        <Image src="/icons/directions.svg" alt="" width={20} height={20} />
-      </button>
+      <Tooltip content={hasRoom && onDirections && `Directions to ${meeting.rooms[0]!.name}`}>
+        <button
+          type="button"
+          onClick={onDirections}
+          disabled={!hasRoom || !onDirections}
+          aria-label={`Directions to ${meeting.rooms[0]?.name ?? "the room"}`}
+          className="absolute right-4 bottom-3 rounded-md p-0.5 transition-colors hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-30"
+        >
+          <Image src="/icons/directions.svg" alt="" width={20} height={20} />
+        </button>
+      </Tooltip>
     </div>
   );
 }
