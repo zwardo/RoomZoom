@@ -14,16 +14,16 @@ export function slotStatus(room: RoomResult, meeting: Pick<Meeting, "id" | "room
 
 /**
  * Rooms tab columns: favorites (just-starred first, minus any just un-starred),
- * then rooms from recent meetings, then the best matches for the filters. Each
- * room appears once.
+ * then rooms from recent meetings, then the best matches for the filters, with
+ * best matches ranked by how many of the listed meetings they're free for.
+ * Each room appears once.
  *
- * With `rankByCoverage` (no meeting selected), best matches are ordered by how
- * many of the listed meetings they're free for; otherwise they keep the search
- * order, which puts rooms free for the selected meeting first.
+ * With a meeting selected, the best matches for it lead instead, in search
+ * order (free for that meeting first), followed by favorites and recent rooms.
  */
 export function roomColumns(
   data: Pick<SearchResponse, "rooms" | "favoriteIds" | "recentIds">,
-  { isFavorite, freeOnly, rankByCoverage }: { isFavorite: (room: RoomResult) => boolean; freeOnly: boolean; rankByCoverage: boolean },
+  { isFavorite, freeOnly, meetingSelected }: { isFavorite: (room: RoomResult) => boolean; freeOnly: boolean; meetingSelected: boolean },
 ): RoomResult[] {
   const byId = new Map(data.rooms.map((r) => [r.id, r]));
   const shown = (r: RoomResult | undefined): r is RoomResult => r !== undefined && (!freeOnly || r.available === true);
@@ -35,7 +35,9 @@ export function roomColumns(
   const recent = data.recentIds.filter((id) => !taken.has(id)).map((id) => byId.get(id)).filter(shown);
   recent.forEach((r) => taken.add(r.id));
   const best = data.rooms.filter((r) => r.matches && !taken.has(r.id));
-  if (rankByCoverage) best.sort((a, b) => (b.freeFor?.length ?? 0) - (a.freeFor?.length ?? 0));
+  const personal = [...allFavorites.filter(shown), ...recent];
+  if (meetingSelected) return [...best, ...personal];
 
-  return [...allFavorites.filter(shown), ...recent, ...best];
+  best.sort((a, b) => (b.freeFor?.length ?? 0) - (a.freeFor?.length ?? 0));
+  return [...personal, ...best];
 }

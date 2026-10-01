@@ -68,32 +68,32 @@ describe("roomColumns", () => {
   const isFavorite = (r: RoomResult) => favorites.has(r.id);
   const names = (list: RoomResult[]) => list.map((r) => r.name);
 
-  it("lists favorites, then recent rooms, then best matches, each once", () => {
-    expect(names(roomColumns(data, { isFavorite, freeOnly: false, rankByCoverage: false }))).toEqual([
+  it("lists favorites, then recent rooms, then best matches by how many meetings they're free for", () => {
+    expect(names(roomColumns(data, { isFavorite, freeOnly: false, meetingSelected: false }))).toEqual([
       "Cedar",
       "Elm",
-      "Aspen",
       "Birch",
+      "Aspen",
       "Dogwood",
     ]);
   });
 
-  it("ranks best matches by how many meetings they're free for when no meeting is selected", () => {
-    expect(names(roomColumns(data, { isFavorite, freeOnly: false, rankByCoverage: true }))).toEqual([
+  it("leads with the best matches in search order once a meeting is selected", () => {
+    expect(names(roomColumns(data, { isFavorite, freeOnly: false, meetingSelected: true }))).toEqual([
+      "Aspen",
+      "Birch",
+      "Dogwood",
       "Cedar",
       "Elm",
-      "Birch",
-      "Aspen",
-      "Dogwood",
     ]);
   });
 
   it("drops busy favorites and recent rooms when only free rooms are wanted", () => {
-    expect(names(roomColumns(data, { isFavorite, freeOnly: true, rankByCoverage: false }))).toEqual([
-      "Elm",
+    expect(names(roomColumns(data, { isFavorite, freeOnly: true, meetingSelected: true }))).toEqual([
       "Aspen",
       "Birch",
       "Dogwood",
+      "Elm",
     ]);
   });
 });

@@ -183,7 +183,8 @@ function RoomHeader({ room, favorite }: { room: RoomResult; favorite: { on: bool
 
 /**
  * Rooms tab: one column per room (favorites, then rooms from recent meetings,
- * then the best matches) and one row per meeting in the meetings list, level
+ * then the best matches, which lead once a meeting is selected) and one row
+ * per meeting in the meetings list, level
  * with its card. Each cell says whether the room is booked on, free, or busy
  * for that meeting. Hovering a row highlights its meeting; a selected meeting's
  * row is banded and the others fade.
@@ -219,7 +220,7 @@ export function RoomsTab({
     grid?.scrollTo({ left: 0 });
   }, [grid, selectedMeetingId]);
 
-  const columns = roomColumns(data, { isFavorite, freeOnly, rankByCoverage: !selectedMeetingId });
+  const columns = roomColumns(data, { isFavorite, freeOnly, meetingSelected: selectedMeetingId !== null });
   const covered = new Set(data.coveredIds);
   const aligned = alignment?.mode === "aligned" ? alignment : null;
   const selectedRow = selectedMeetingId ? aligned?.rows.get(selectedMeetingId) : undefined;
