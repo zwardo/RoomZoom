@@ -121,7 +121,7 @@ export class GoogleCalendarProvider implements CalendarProvider {
     const { data: event } = await this.cal.events.get({ calendarId: "primary", eventId: input.eventId });
     const meeting = toMeeting(event);
     if (!meeting.canModify) {
-      throw new HttpError(403, "Only the organizer can add a room to this meeting.");
+      throw new HttpError(403, "Only the organizer can book a room for this meeting.");
     }
     const attendees = (event.attendees ?? []).filter(
       (a) => a.email?.toLowerCase() !== input.roomEmail && !(input.replaceExisting && a.resource),

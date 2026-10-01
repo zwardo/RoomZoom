@@ -107,7 +107,7 @@ function BookForm({
     <form onSubmit={submit} className="grid gap-4">
       <div className="grid gap-1">
         <DialogTitle>
-          {meeting ? (swapping ? `Switch to ${room.name}?` : `Add ${room.name} to your meeting?`) : `Book ${room.name}`}
+          {meeting ? (swapping ? `Switch to ${room.name}?` : `Book ${room.name} for your meeting?`) : `Book ${room.name}`}
         </DialogTitle>
         <DialogDescription>
           {room.buildingName} · Floor {room.floorName ?? "?"} · {room.capacity ?? "?"} people
@@ -148,7 +148,7 @@ function BookForm({
           </Button>
         </DialogClose>
         <Button type="submit" variant="solid" disabled={pending}>
-          {pending ? "Booking…" : meeting ? (swapping ? "Switch room" : "Add room") : "Book room"}
+          {pending ? "Booking…" : swapping ? "Switch room" : "Book room"}
         </Button>
       </div>
     </form>
