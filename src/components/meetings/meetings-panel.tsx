@@ -95,7 +95,12 @@ export function MeetingsPanel({
         </IconButton>
       </div>
 
-      <div ref={scrollRef} className="scrollbar-auto-hide flex min-h-0 flex-1 flex-col overflow-y-auto pt-1.5 pb-4" aria-busy={loading}>
+      {/* --grid-header-inset is set by the Rooms tab so the first card's row starts below its room headers. */}
+      <div
+        ref={scrollRef}
+        className="scrollbar-auto-hide flex min-h-0 flex-1 flex-col overflow-y-auto pt-[calc(--spacing(1.5)+var(--grid-header-inset,0px))] pb-4"
+        aria-busy={loading}
+      >
         {pickerOpen && (
           <div id="meetings-date-picker" className="flex justify-center px-4 pb-2">
             <Calendar
