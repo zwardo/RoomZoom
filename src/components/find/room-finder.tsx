@@ -3,6 +3,7 @@
 import { LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { AppHeader, type HeaderUser } from "@/components/app-header";
+import { CreateMeetingDialog } from "@/components/meetings/create-meeting-dialog";
 import { createHoveredMeeting } from "@/components/meetings/hovered-meeting";
 import { MeetingsPanel } from "@/components/meetings/meetings-panel";
 import { Alert } from "@/components/ui/alert";
@@ -125,6 +126,8 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
   const [meetingsScroller, setMeetingsScroller] = useState<HTMLDivElement | null>(null);
   const [notice, setNotice] = useState<{ message: string; error?: boolean } | null>(null);
   const [searchReload, setSearchReload] = useState(0);
+  /** Where the New meeting dialog's times start, while it's open. */
+  const [creating, setCreating] = useState<{ start: Date; end: Date } | null>(null);
 
   const [openedAt] = useState(() => Date.now());
   const visible = meetings.views?.filter((v) => date || Date.parse(v.meeting.end) > openedAt) ?? null;
@@ -225,7 +228,12 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
           hovered={hoveredMeeting}
           scrollRef={setMeetingsScroller}
           onSelect={(v) => selectMeeting(v.meeting.id === meetingId ? null : v)}
-          onDirections={(v) => selectMeeting(v, { focusRoom: true })}
+          onDirections={view === "rooms" ? (v) => selectMeeting(v, { focusRoom: true }) : undefined}
+          onCreate={() => {
+            const start = fromInputs(slotForm.date, slotForm.time);
+            const from = start.getTime() > Date.now() ? start : nextHalfHour();
+            setCreating({ start: from, end: new Date(from.getTime() + slotForm.duration * 60_000) });
+          }}
           date={date}
           onDateChange={(d) => {
             setDate(d);
@@ -291,6 +299,23 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
           setSearchReload((k) => k + 1);
           setMeetingsReload((k) => k + 1);
           if (!bookingMeeting) setMeetingId(result.meeting.id);
+        }}
+      />
+      <CreateMeetingDialog
+        open={Boolean(creating)}
+        initial={creating ?? slot}
+        onClose={() => setCreating(null)}
+        onCreated={({ meeting: created, message, room }) => {
+          setCreating(null);
+          setNotice({ message });
+          setSearchReload((k) => k + 1);
+          setMeetingsReload((k) => k + 1);
+          if (created.allDay) return;
+          if (date && date.toDateString() !== new Date(created.start).toDateString()) setDate(null);
+          setMeetingId(created.id);
+          setFilters((f) => ({ ...f, minCapacity: created.attendeeCount }));
+          setRoomId(room?.id ?? null);
+          if (room?.floorId) setMapFloorId(room.floorId);
         }}
       />
     </div>

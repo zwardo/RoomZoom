@@ -39,13 +39,40 @@ export interface RoomAvailability {
   error?: string;
 }
 
+export interface MeetingReminder {
+  method: "popup" | "email";
+  minutes: number;
+}
+
+export interface GuestPermissions {
+  modify: boolean;
+  inviteOthers: boolean;
+  seeGuestList: boolean;
+}
+
 export interface CreateMeetingInput {
   title: string;
+  /** ISO date-time, or a `YYYY-MM-DD` date when `allDay`. */
   start: string;
+  /** ISO date-time, or the exclusive `YYYY-MM-DD` end date when `allDay`. */
   end: string;
-  roomEmail: string;
-  roomName: string;
+  allDay?: boolean;
+  /** IANA zone the times were picked in; Google needs it to expand recurring events. */
+  timeZone?: string;
+  /** A single RRULE from `recurrenceRule`. */
+  recurrence?: string;
+  roomEmail?: string;
+  roomName?: string;
+  /** Free-text location, used when there's no room. */
+  location?: string;
   guests?: string[];
+  description?: string;
+  addMeet?: boolean;
+  /** Replaces the calendar's default reminders; an empty list means none. */
+  reminders?: MeetingReminder[];
+  showAs?: "busy" | "free";
+  visibility?: "default" | "public" | "private";
+  guestPermissions?: GuestPermissions;
 }
 
 export interface AddRoomInput {

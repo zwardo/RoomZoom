@@ -41,6 +41,7 @@ export function MeetingCard({
   /** Shows the Hover state while the pointer is elsewhere, e.g. over this meeting's row in the Rooms tab. */
   highlighted?: boolean;
   onSelect: () => void;
+  /** Shows the directions button; leave unset where selecting the meeting already shows its room. */
   onDirections?: () => void;
 }) {
   const hasRoom = meeting.rooms.length > 0;
@@ -88,17 +89,19 @@ export function MeetingCard({
       <p className="pointer-events-none flex h-6 shrink-0 items-center text-sm text-rooms-xpale">
         <LocalTimeRange start={meeting.start} end={meeting.end} />
       </p>
-      <Tooltip content={hasRoom && onDirections && `Directions to ${meeting.rooms[0]!.name}`}>
-        <button
-          type="button"
-          onClick={onDirections}
-          disabled={!hasRoom || !onDirections}
-          aria-label={`Directions to ${meeting.rooms[0]?.name ?? "the room"}`}
-          className="absolute right-4 bottom-3 rounded-md p-0.5 transition-colors hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-30"
-        >
-          <Image src="/icons/directions.svg" alt="" width={20} height={20} />
-        </button>
-      </Tooltip>
+      {onDirections && (
+        <Tooltip content={hasRoom && `Directions to ${meeting.rooms[0]!.name}`}>
+          <button
+            type="button"
+            onClick={onDirections}
+            disabled={!hasRoom}
+            aria-label={`Directions to ${meeting.rooms[0]?.name ?? "the room"}`}
+            className="absolute right-4 bottom-3 rounded-md p-0.5 transition-colors hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-30"
+          >
+            <Image src="/icons/directions.svg" alt="" width={20} height={20} />
+          </button>
+        </Tooltip>
+      )}
     </div>
   );
 }
