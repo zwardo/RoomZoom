@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { ensureFloor } from "@/lib/rooms/catalog";
+import type { FloorImageTheme } from "@/lib/rooms/types";
 import { buildNavGraph, type FloorAnnotation } from "./svg-annotations";
 
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -24,6 +25,8 @@ export async function applyFloorAnnotation(opts: {
   floorName: string;
   annotation: FloorAnnotation;
   imagePath: string | null;
+  /** Defaults to "light" whenever a new image is given. */
+  imageTheme?: FloorImageTheme;
   feetPerPixel?: number | null;
   navTolerancePx?: number;
 }): Promise<ApplyFloorResult> {
@@ -37,7 +40,7 @@ export async function applyFloorAnnotation(opts: {
       widthPx: Math.round(a.width),
       heightPx: Math.round(a.height),
       feetPerPixel: feetPerPixel ?? null,
-      ...(opts.imagePath ? { imagePath: opts.imagePath } : {}),
+      ...(opts.imagePath ? { imagePath: opts.imagePath, imageTheme: opts.imageTheme ?? "light" } : {}),
     },
   });
 

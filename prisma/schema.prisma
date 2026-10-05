@@ -37,6 +37,8 @@ model Floor {
   /// Numeric level used for floor-change penalties. Defaults to parsed `name`.
   level        Int       @default(0)
   imagePath    String?
+  /// "light": dark lines on white, inverted onto the dark map. "dark": already drawn in the map palette, shown as is.
+  imageTheme   String    @default("light")
   widthPx      Int       @default(0)
   heightPx     Int       @default(0)
   feetPerPixel Float?

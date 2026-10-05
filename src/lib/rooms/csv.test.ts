@@ -6,9 +6,10 @@ describe("parseRoomsCsv", () => {
   it("parses the sample file, mixing generated names and explicit columns", () => {
     const { rows, errors } = parseRoomsCsv(readFileSync("data/samples/rooms.csv", "utf8"));
     expect(errors).toEqual([]);
-    expect(rows).toHaveLength(10);
+    expect(rows).toHaveLength(18);
     expect(rows[0]).toMatchObject({ name: "Oak", building: "HQ", floor: "2", capacity: 8, features: ["TV", "Whiteboard"] });
     expect(rows[5]).toMatchObject({ name: "Maple", building: "HQ", floor: "3", capacity: 10 });
+    expect(rows[10]).toMatchObject({ name: "Dry Creek", building: "Building 2", floor: "4", capacity: 6, features: [] });
   });
 
   it("reports rows without building/floor", () => {
