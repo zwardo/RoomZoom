@@ -58,36 +58,36 @@ export function demoFloorNames() {
 export function demoDrawing(floor: string) {
   const { rooms, kitchen, desks } = layout(floor);
   const text = (x: number, y: number, s: string, size = 14, weight = 400) =>
-    `<text x="${x}" y="${y}" font-size="${size}" font-weight="${weight}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" fill="#334155">${s}</text>`;
+    `<text x="${x}" y="${y}" font-size="${size}" font-weight="${weight}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" fill="#9186b2">${s}</text>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${DEMO_WIDTH} ${DEMO_HEIGHT}" width="${DEMO_WIDTH}" height="${DEMO_HEIGHT}">
-  <rect width="${DEMO_WIDTH}" height="${DEMO_HEIGHT}" fill="#ffffff"/>
-  <rect x="20" y="20" width="1160" height="760" fill="#f8fafc" stroke="#334155" stroke-width="6"/>
-  <g fill="#e2e8f0">
+  <rect width="${DEMO_WIDTH}" height="${DEMO_HEIGHT}" fill="#09080e"/>
+  <rect x="20" y="20" width="1160" height="760" fill="#1a1a2d" stroke="#39395b" stroke-width="6"/>
+  <g fill="#292946">
     <rect x="40" y="${HALL_Y - 20}" width="1120" height="40"/>
     <rect x="40" y="${HALL_Y}" width="40" height="${BOTTOM_Y - HALL_Y + 20}"/>
     <rect x="1120" y="${HALL_Y}" width="40" height="${BOTTOM_Y - HALL_Y + 20}"/>
     <rect x="580" y="${HALL_Y}" width="40" height="${BOTTOM_Y - HALL_Y}"/>
     <rect x="40" y="${BOTTOM_Y - 20}" width="1120" height="40"/>
   </g>
-  <g fill="#ffffff" stroke="#334155" stroke-width="3">
+  <g fill="#1a1a2d" stroke="#39395b" stroke-width="3">
 ${rooms.map((r) => `    <rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.h}"/>`).join("\n")}
-    <rect x="${kitchen.x}" y="${kitchen.y}" width="${kitchen.w}" height="${kitchen.h}" fill="#f1f5f9"/>
+    <rect x="${kitchen.x}" y="${kitchen.y}" width="${kitchen.w}" height="${kitchen.h}" fill="#292946"/>
   </g>
-  <g stroke="#f8fafc" stroke-width="6">
+  <g stroke="#1a1a2d" stroke-width="6">
 ${rooms.map((r) => `    <line x1="${r.x + r.width / 2 - 18}" y1="220" x2="${r.x + r.width / 2 + 18}" y2="220"/>`).join("\n")}
   </g>
 ${rooms.map((r) => `  ${text(r.x + r.width / 2, 125, r.name.toUpperCase(), 18, 700)}\n  ${text(r.x + r.width / 2, 148, `${r.capacity} seats`, 13)}`).join("\n")}
   ${text(kitchen.x + kitchen.w / 2, 135, "KITCHEN", 16, 700)}
-  <g fill="#ffffff" stroke="#94a3b8" stroke-width="1.5">
+  <g fill="#1a1a2d" stroke="#39395b" stroke-width="1.5">
 ${desks.map((d) => `    <rect x="${d.x - 25}" y="${d.y - 20}" width="50" height="40" rx="3"/>`).join("\n")}
   </g>
 ${desks.map((d) => `  ${text(d.x, d.y + 4, d.label, 11)}`).join("\n")}
-  <rect x="24" y="690" width="72" height="86" fill="#fde68a" stroke="#334155" stroke-width="2"/>
+  <rect x="24" y="690" width="72" height="86" fill="#39395b" stroke="#9186b2" stroke-width="2"/>
   ${text(60, 740, "STAIRS", 11, 700)}
-  <rect x="1104" y="690" width="72" height="86" fill="#bfdbfe" stroke="#334155" stroke-width="2"/>
+  <rect x="1104" y="690" width="72" height="86" fill="#4737b2" stroke="#9186b2" stroke-width="2"/>
   ${text(1140, 740, "ELEV", 11, 700)}
   ${text(600, 790, `HQ · FLOOR ${floor}`, 12, 700)}
-  <line x1="840" y1="784" x2="1080" y2="784" stroke="#334155" stroke-width="2"/>
+  <line x1="840" y1="784" x2="1080" y2="784" stroke="#9186b2" stroke-width="2"/>
   ${text(960, 778, "30 ft", 11)}
 </svg>
 `;

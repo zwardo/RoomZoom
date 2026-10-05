@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { XCircle } from "lucide-react";
 import * as React from "react";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 /** Figma "chip": pill with a medium 12px label on a 20-30% tint of its color. */
@@ -45,14 +46,16 @@ export function FilterChip({
   return (
     <span className={cn(badgeVariants({ variant }), "max-w-full gap-1 py-0.5 pr-0.5", className)}>
       <span className="truncate">{children}</span>
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label={removeLabel}
-        className="shrink-0 rounded-full opacity-90 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&_svg]:size-4"
-      >
-        <XCircle aria-hidden />
-      </button>
+      <Tooltip content={removeLabel}>
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={removeLabel}
+          className="shrink-0 rounded-full opacity-90 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&_svg]:size-4"
+        >
+          <XCircle aria-hidden />
+        </button>
+      </Tooltip>
     </span>
   );
 }

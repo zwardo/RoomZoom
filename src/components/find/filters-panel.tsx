@@ -72,6 +72,7 @@ export function FiltersPanel({
     <div ref={ref} className="relative">
       <IconButton
         aria-label="Room filters"
+        tooltip={open ? false : active ? "Room filters (some applied)" : "Room filters"}
         aria-expanded={open}
         aria-controls={`${id}-panel`}
         onClick={() => setOpen((o) => !o)}

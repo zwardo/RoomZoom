@@ -2,24 +2,26 @@
 
 import { Footprints, LoaderCircle, Lock } from "lucide-react";
 import { LocalTimeRange } from "@/components/local-time";
+import type { HoveredMeeting } from "@/components/meetings/hovered-meeting";
 import { RoomCard } from "@/components/rooms/room-card";
 import { Alert } from "@/components/ui/alert";
 import { Badge, FilterChip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { Meeting } from "@/lib/calendar/types";
 import type { RoomResult, SearchResponse } from "@/lib/rooms/types";
 import { cn } from "@/lib/utils";
 import { FiltersPanel, type SlotForm } from "./filters-panel";
 import { FloorMap } from "./floor-map";
-import { type CoverMeeting, RoomsTab } from "./rooms-tab";
+import { RoomsTab } from "./rooms-tab";
 import type { RoomFilters } from "./use-room-search";
 
 export type RoomsView = "map" | "rooms";
 
 /**
  * Figma "rooms + map" panel: Rooms/Map tabs, the selected-meeting chip and
- * filters in the header, then the floor map (or list) with the selected room's
- * card pinned to the bottom.
+ * filters in the header, then the floor map with the selected room's card
+ * pinned to the bottom, or the Rooms tab's room-by-meeting grid.
  */
 export function RoomsPanel({
   view,
@@ -43,7 +45,10 @@ export function RoomsPanel({
   onBook,
   isFavorite,
   onToggleFavorite,
-  coverMeetings,
+  meetings,
+  meetingsScroller,
+  hoveredMeeting,
+  onBookSlot,
   notice,
 }: {
   view: RoomsView;
@@ -68,7 +73,13 @@ export function RoomsPanel({
   onBook: (room: RoomResult) => void;
   isFavorite: (room: RoomResult) => boolean;
   onToggleFavorite: (room: RoomResult) => void;
-  coverMeetings: CoverMeeting[];
+  /** Meetings in the meetings list; the Rooms tab gives each a row. */
+  meetings: Meeting[];
+  /** The meetings list's scroll container, which the Rooms tab rows line up with. */
+  meetingsScroller: HTMLElement | null;
+  hoveredMeeting: HoveredMeeting;
+  /** Books a room for one of the listed meetings (a cell in the Rooms tab). */
+  onBookSlot: (room: RoomResult, meeting: Meeting) => void;
   notice: React.ReactNode;
 }) {
   const floors = data?.floors ?? [];
@@ -79,12 +90,29 @@ export function RoomsPanel({
     floors.find((f) => f.id === data?.rooms[0]?.floorId) ??
     floors[0] ??
     null;
+  const buildings = [...new Map(floors.map((f) => [f.buildingId, { id: f.buildingId, name: f.buildingName }])).values()];
   const onMeeting = new Set(meeting?.rooms.map((r) => r.email));
   const bookLabel = meeting ? (meeting.rooms.length ? "Switch room" : "Book room") : "Book room";
   // Favorites and recent rooms ride along for the Rooms tab; the map and counts stick to the filters.
   const matching = data?.rooms.filter((r) => r.matches || onMeeting.has(r.email)) ?? [];
   const free = matching.filter((r) => r.available === true).length;
   const needed = meeting ? meeting.acceptedCount : undefined;
+
+  const messages = (
+    <>
+      {notice}
+      {error && <Alert variant="error">{error}</Alert>}
+      {previousMeeting && data?.fromRoom && (
+        <p className="flex shrink-0 items-center gap-2 text-xs text-rooms-pale">
+          <Footprints className="size-4 shrink-0 text-rooms-accent" aria-hidden />
+          <span>
+            Back-to-back after {previousMeeting.title}: distances are from{" "}
+            <span className="text-rooms-accent">{data.fromRoom.name}</span>
+          </span>
+        </p>
+      )}
+    </>
+  );
 
   function bookAction(room: RoomResult) {
     if (onMeeting.has(room.email)) return <Badge variant="success">On this meeting</Badge>;
@@ -157,21 +185,11 @@ export function RoomsPanel({
         role="tabpanel"
         aria-labelledby={`tab-${view}`}
         aria-busy={loading}
-        className="flex min-h-0 flex-1 flex-col gap-4 px-6 pb-6"
+        className={cn("flex min-h-0 flex-1 flex-col gap-4", view === "map" && "px-6 pb-6")}
       >
-        {notice}
-        {error && <Alert variant="error">{error}</Alert>}
-        {previousMeeting && data?.fromRoom && (
-          <p className="flex shrink-0 items-center gap-2 text-xs text-rooms-pale">
-            <Footprints className="size-4 shrink-0 text-rooms-accent" aria-hidden />
-            <span>
-              Back-to-back after {previousMeeting.title}: distances are from{" "}
-              <span className="text-rooms-accent">{data.fromRoom.name}</span>
-            </span>
-          </p>
-        )}
+        {view === "map" && messages}
         {!data && loading && !error && (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <p className={cn("flex items-center gap-2 text-sm text-muted-foreground", view === "rooms" && "px-6")}>
             <LoaderCircle className="size-4 animate-spin" aria-hidden />
             Checking room availability…
           </p>
@@ -179,14 +197,36 @@ export function RoomsPanel({
 
         {data && view === "map" && (
           <>
-            {floors.length > 1 && (
-              <div className="flex shrink-0 flex-wrap gap-2" role="group" aria-label="Floors">
-                {floors.map((f) => (
-                  <Button key={f.id} size="sm" aria-pressed={f.id === activeFloor?.id} onClick={() => onMapFloorChange(f.id)}>
-                    {data.facets.buildings.length > 1 && `${f.buildingName} · `}Floor {f.name}
-                    {f.id === data.myDesk?.floorId && <span className="text-[10px] opacity-80">(you)</span>}
-                  </Button>
-                ))}
+            {activeFloor && (
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <SegmentedControl
+                  aria-label="Building"
+                  options={buildings.map((b) => ({
+                    value: b.id,
+                    label: b.name.replace(/^Building\b/i, "Bldg"),
+                    srLabel: b.id === data.myDesk?.buildingId ? "(your desk)" : undefined,
+                  }))}
+                  value={activeFloor.buildingId}
+                  onChange={(buildingId) => {
+                    const inBuilding = floors.filter((f) => f.buildingId === buildingId);
+                    const floor =
+                      inBuilding.find((f) => f.id === data.myDesk?.floorId) ??
+                      inBuilding.find((f) => f.id === selected?.floorId) ??
+                      inBuilding[0];
+                    if (floor) onMapFloorChange(floor.id);
+                  }}
+                />
+                <SegmentedControl
+                  aria-label="Floor"
+                  options={floors
+                    .filter((f) => f.buildingId === activeFloor.buildingId)
+                    .map((f) => {
+                      const desk = f.id === data.myDesk?.floorId;
+                      return { value: f.id, label: f.name, srLabel: desk ? "(your desk)" : undefined, tooltip: desk && "Your desk" };
+                    })}
+                  value={activeFloor.id}
+                  onChange={onMapFloorChange}
+                />
               </div>
             )}
             <div className={cn("flex min-h-64 flex-1 items-center justify-center [container-type:size]", loading && "opacity-60")}>
@@ -211,21 +251,22 @@ export function RoomsPanel({
         )}
 
         {data && view === "rooms" && (
-          <div className={cn("flex min-h-0 flex-1 flex-col", loading && "opacity-60")}>
+          <div className={cn("flex min-h-0 flex-1 flex-col transition-opacity", loading && "opacity-60")}>
             <RoomsTab
               data={data}
-              selectedId={selected?.id ?? null}
-              needed={needed}
+              meetings={meetings}
+              meetingsScroller={meetingsScroller}
+              selectedMeetingId={meeting?.id ?? null}
               isFavorite={isFavorite}
               onToggleFavorite={onToggleFavorite}
               freeOnly={filters.availableOnly}
-              onFreeOnlyChange={(availableOnly) => onFiltersChange({ ...filters, availableOnly })}
-              coverMeetings={coverMeetings}
-              onSelect={(room) => onSelectRoom(room)}
-              renderAction={bookAction}
+              hovered={hoveredMeeting}
+              onBook={onBookSlot}
             />
           </div>
         )}
+        {/* Below the grid, so the rows stay level with the meeting cards. */}
+        {view === "rooms" && <div className="flex shrink-0 flex-col gap-4 px-6 pb-4 empty:hidden">{messages}</div>}
       </div>
     </section>
   );

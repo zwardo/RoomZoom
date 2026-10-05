@@ -3,8 +3,9 @@
 import { Minus, Plus, RotateCcw } from "lucide-react";
 import { TransformComponent, TransformWrapper, useControls } from "react-zoom-pan-pinch";
 import { IconButton } from "@/components/ui/icon-button";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { FloorSummary, MyDesk, Point, RoomResult } from "@/lib/rooms/types";
-import { cn } from "@/lib/utils";
+import { cn, formatFeet } from "@/lib/utils";
 
 const PHONE_BOOTH = /phone|booth/i;
 
@@ -99,10 +100,15 @@ export function FloorMap({
                   className={cn(floor.imageTheme === "light" && "opacity-70 [filter:invert(1)_hue-rotate(180deg)_brightness(0.85)]")}
                 />
               )}
+              {/* Plans are drawn in the app's dark palette and render as-is. */}
+              {floor.imageUrl && <image href={floor.imageUrl} width={w} height={h} />}
               {mapped.map((room) => {
                 const state = stateOf(room, selected?.id);
                 const booth = state !== "selected" && state !== "busy" && PHONE_BOOTH.test(room.name);
                 const label = `${room.name}, ${room.available === true ? "free" : room.available === false ? "busy" : "availability unknown"}`;
+                const tip = [label, room.capacity != null && `${room.capacity} seats`, room.distanceFt != null && formatFeet(room.distanceFt)]
+                  .filter(Boolean)
+                  .join(" · ");
                 const common = {
                   className: cn(
                     "cursor-pointer transition-[fill] outline-none",
@@ -123,18 +129,18 @@ export function FloorMap({
                 };
                 if (!room.polygon) {
                   return (
-                    <circle key={room.id} cx={room.door![0]} cy={room.door![1]} r={unit * 1.5} {...common}>
-                      <title>{label}</title>
-                    </circle>
+                    <Tooltip key={room.id} content={tip}>
+                      <circle cx={room.door![0]} cy={room.door![1]} r={unit * 1.5} {...common} />
+                    </Tooltip>
                   );
                 }
                 const box = bounds(room.polygon);
                 const fontSize = Math.min(unit * 1.6, box.w / Math.max(room.name.length, 4) * 1.5, box.h / 3);
                 return (
                   <g key={room.id}>
-                    <polygon points={toPoints(room.polygon)} {...common}>
-                      <title>{label}</title>
-                    </polygon>
+                    <Tooltip content={tip}>
+                      <polygon points={toPoints(room.polygon)} {...common} />
+                    </Tooltip>
                     {/* Imported plans already print room names; label only bare outlines. */}
                     {!floor.imageUrl && fontSize > unit * 0.5 && (
                       <text

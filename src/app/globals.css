@@ -91,6 +91,52 @@
   --font-mono: var(--font-roboto-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* Figma "scrollbar": an 8px XPale bar with no track, at 40% and 60% (hovered
+   or dragged). It keeps its space but stays hidden until the area is hovered
+   or scrolling (`data-scrolling`, set by <ScrollActivity />). */
+@utility scrollbar-auto-hide {
+  --scrollbar-thumb: transparent;
+  &:hover,
+  &[data-scrolling] {
+    --scrollbar-thumb: color-mix(in srgb, var(--color-rooms-xpale) 40%, transparent);
+  }
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+  }
+  &::-webkit-scrollbar-track,
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: var(--scrollbar-thumb);
+  }
+  &::-webkit-scrollbar-thumb:hover,
+  &::-webkit-scrollbar-thumb:active {
+    background: color-mix(in srgb, var(--color-rooms-xpale) 60%, transparent);
+  }
+
+  /* Firefox has no ::-webkit-scrollbar; Chrome ignores it once scrollbar-color is set. */
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+}
+
+/* Native selects draw their arrow flush with the edge; swap it for a Light
+   chevron inset 8px. Pair with pr-8 so text clears it. Data URIs can't read
+   CSS variables, so the stroke repeats --color-rooms-light. */
+@utility select-chevron {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+}
+
 @layer base {
   * {
     border-color: var(--border);

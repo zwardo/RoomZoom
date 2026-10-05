@@ -5,6 +5,7 @@ import Image from "next/image";
 import { LocalTimeRange } from "@/components/local-time";
 import { LocationMeta } from "@/components/rooms/location-meta";
 import { MetaList } from "@/components/ui/meta-list";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { Meeting } from "@/lib/calendar/types";
 import type { RoomLocation } from "@/lib/rooms/types";
 import { cn } from "@/lib/utils";
@@ -30,13 +31,17 @@ export function MeetingCard({
   meeting,
   location,
   selected,
+  highlighted = false,
   onSelect,
   onDirections,
 }: {
   meeting: Meeting;
   location: RoomLocation | null;
   selected: boolean;
+  /** Shows the Hover state while the pointer is elsewhere, e.g. over this meeting's row in the Rooms tab. */
+  highlighted?: boolean;
   onSelect: () => void;
+  /** Shows the directions button; leave unset where selecting the meeting already shows its room. */
   onDirections?: () => void;
 }) {
   const hasRoom = meeting.rooms.length > 0;
@@ -45,10 +50,12 @@ export function MeetingCard({
   return (
     <div
       className={cn(
-        "group relative flex w-full items-start gap-5 overflow-clip rounded-lg border-2 border-transparent px-4 py-3 transition-colors",
+        "group relative flex w-full items-start gap-5 overflow-clip rounded-lg border-2 border-transparent px-4 py-3",
         selected
           ? "border-rooms-accent bg-rooms-accent/20"
-          : cn(locked ? "bg-rooms-dark" : "bg-rooms-medium", "hover:border-rooms-light hover:bg-rooms-bg-light"),
+          : highlighted
+            ? "border-rooms-light bg-rooms-bg-light"
+            : cn(locked ? "bg-rooms-dark" : "bg-rooms-medium", "hover:border-rooms-light hover:bg-rooms-bg-light"),
       )}
     >
       <button
@@ -82,20 +89,28 @@ export function MeetingCard({
       <p className="pointer-events-none flex h-6 shrink-0 items-center text-sm text-rooms-xpale">
         <LocalTimeRange start={meeting.start} end={meeting.end} />
       </p>
-      <button
-        type="button"
-        onClick={onDirections}
-        disabled={!hasRoom || !onDirections}
-        aria-label={`Directions to ${meeting.rooms[0]?.name ?? "the room"}`}
-        className="absolute right-4 bottom-3 rounded-md p-0.5 transition-colors hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-30"
-      >
-        <Image src="/icons/directions.svg" alt="" width={20} height={20} />
-      </button>
+      {onDirections && (
+        <Tooltip content={hasRoom && `Directions to ${meeting.rooms[0]!.name}`}>
+          <button
+            type="button"
+            onClick={onDirections}
+            disabled={!hasRoom}
+            aria-label={`Directions to ${meeting.rooms[0]?.name ?? "the room"}`}
+            className="absolute right-4 bottom-3 rounded-md p-0.5 transition-colors hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-30"
+          >
+            <Image src="/icons/directions.svg" alt="" width={20} height={20} />
+          </button>
+        </Tooltip>
+      )}
     </div>
   );
 }
 
-/** Figma meeting-card "Empty" state. */
+/** Figma meeting-card "Empty" state. `data-empty-row` lets the Rooms tab grid fill the gap it leaves. */
 export function NoMeetings() {
-  return <p className="w-full px-4 py-1 text-center text-base leading-5 text-rooms-xpale opacity-75">No meetings</p>;
+  return (
+    <p data-empty-row className="w-full px-4 py-1 text-center text-base leading-5 text-rooms-xpale opacity-75">
+      No meetings
+    </p>
+  );
 }

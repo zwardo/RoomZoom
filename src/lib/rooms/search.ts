@@ -5,7 +5,8 @@ import { parseJsonArray } from "@/lib/utils";
 import type { PersonalRooms } from "./personal";
 import { type FloorSummary, type Point, ROOM_PRIORITIES, type RoomPriority, type RoomResult, type SearchResponse } from "./types";
 
-const MAX_COVER = 40;
+/** A week of meetings for the Rooms tab grid, while keeping the query string well under header limits. */
+const MAX_COVER = 60;
 
 export const searchParamsSchema = z
   .object({
@@ -192,6 +193,7 @@ export async function searchRooms(
     fromRoom: distance?.fromRoom ?? null,
     favoriteIds: personal?.favoriteIds.filter((id) => rooms.some((r) => r.id === id)) ?? [],
     recentIds: personal?.recentEmails.map((e) => idByEmail.get(e)).filter((id): id is string => Boolean(id)) ?? [],
+    coveredIds: params.cover.map((w) => w.id),
   };
 }
 

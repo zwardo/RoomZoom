@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type calendar_v3, google } from "googleapis";
 import { getUserAuth } from "@/lib/google/user-auth";
 import { HttpError } from "@/lib/session";
@@ -100,18 +101,32 @@ export class GoogleCalendarProvider implements CalendarProvider {
   }
 
   async createMeeting(input: CreateMeetingInput) {
+    const when = (value: string) => (input.allDay ? { date: value } : { dateTime: value, timeZone: input.timeZone });
+    const perms = input.guestPermissions;
     const res = await this.cal.events.insert({
       calendarId: "primary",
       sendUpdates: "all",
+      conferenceDataVersion: input.addMeet ? 1 : undefined,
       requestBody: {
         summary: input.title,
-        location: input.roomName,
-        start: { dateTime: input.start },
-        end: { dateTime: input.end },
+        description: input.description,
+        location: input.roomName ?? input.location,
+        start: when(input.start),
+        end: when(input.end),
+        recurrence: input.recurrence ? [input.recurrence] : undefined,
         attendees: [
-          { email: input.roomEmail, resource: true },
+          ...(input.roomEmail ? [{ email: input.roomEmail, resource: true }] : []),
           ...(input.guests ?? []).map((email) => ({ email })),
         ],
+        reminders: input.reminders && { useDefault: false, overrides: input.reminders },
+        transparency: input.showAs === "free" ? "transparent" : undefined,
+        visibility: input.visibility,
+        guestsCanModify: perms?.modify,
+        guestsCanInviteOthers: perms?.inviteOthers,
+        guestsCanSeeOtherGuests: perms?.seeGuestList,
+        conferenceData: input.addMeet
+          ? { createRequest: { requestId: randomUUID(), conferenceSolutionKey: { type: "hangoutsMeet" } } }
+          : undefined,
       },
     });
     return toMeeting(res.data);
@@ -121,7 +136,7 @@ export class GoogleCalendarProvider implements CalendarProvider {
     const { data: event } = await this.cal.events.get({ calendarId: "primary", eventId: input.eventId });
     const meeting = toMeeting(event);
     if (!meeting.canModify) {
-      throw new HttpError(403, "Only the organizer can add a room to this meeting.");
+      throw new HttpError(403, "Only the organizer can book a room for this meeting.");
     }
     const attendees = (event.attendees ?? []).filter(
       (a) => a.email?.toLowerCase() !== input.roomEmail && !(input.replaceExisting && a.resource),

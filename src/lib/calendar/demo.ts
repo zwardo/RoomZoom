@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { HttpError } from "@/lib/session";
+import { occurrences } from "./recurrence";
 import {
   type AddRoomInput,
   type BusyInterval,
@@ -9,6 +10,13 @@ import {
   overlaps,
   type RoomAvailability,
 } from "./types";
+
+/** How far ahead repeating demo meetings are expanded. */
+const DEMO_RECURRENCE_DAYS = 90;
+
+function toLocalDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 /**
  * In-memory simulated calendar for DEMO_MODE. Room busy blocks are
@@ -163,28 +171,41 @@ export class DemoCalendarProvider implements CalendarProvider {
   }
 
   async createMeeting(input: CreateMeetingInput) {
-    const meeting: Meeting = {
-      id: `demo-new-${Date.now()}`,
-      title: input.title,
-      start: input.start,
-      end: input.end,
-      allDay: false,
-      location: input.roomName,
-      attendeeCount: 1 + (input.guests?.length ?? 0),
-      acceptedCount: 1,
-      rooms: [{ email: input.roomEmail, name: input.roomName, status: "accepted" }],
-      isOrganizer: true,
-      canModify: true,
-    };
-    book(input.roomEmail, input.start, input.end);
-    (await this.meetings()).push(meeting);
-    return meeting;
+    const id = `demo-new-${Date.now()}`;
+    // All-day dates are local calendar days; timed values are instants.
+    const parse = (v: string) => (input.allDay ? new Date(`${v}T00:00:00`) : new Date(v));
+    const start = parse(input.start);
+    const length = parse(input.end).getTime() - start.getTime();
+    const starts = input.recurrence
+      ? occurrences(input.recurrence, start, new Date(start.getTime() + DEMO_RECURRENCE_DAYS * 86_400_000))
+      : [start];
+
+    const created = starts.map((s, i): Meeting => {
+      const end = new Date(s.getTime() + length);
+      if (input.roomEmail) book(input.roomEmail, s.toISOString(), end.toISOString());
+      return {
+        id: starts.length > 1 ? `${id}_${i}` : id,
+        title: input.title,
+        start: input.allDay ? toLocalDate(s) : s.toISOString(),
+        end: input.allDay ? toLocalDate(end) : end.toISOString(),
+        allDay: Boolean(input.allDay),
+        location: input.roomName ?? input.location,
+        attendeeCount: 1 + (input.guests?.length ?? 0),
+        acceptedCount: 1,
+        inOfficeCount: 1,
+        rooms: input.roomEmail ? [{ email: input.roomEmail, name: input.roomName ?? input.roomEmail, status: "accepted" }] : [],
+        isOrganizer: true,
+        canModify: true,
+      };
+    });
+    (await this.meetings()).push(...created);
+    return created[0];
   }
 
   async addRoomToMeeting(input: AddRoomInput) {
     const meeting = await this.getMeeting(input.eventId);
     if (!meeting) throw new HttpError(404, "Meeting not found");
-    if (!meeting.canModify) throw new HttpError(403, "Only the organizer can add a room to this meeting.");
+    if (!meeting.canModify) throw new HttpError(403, "Only the organizer can book a room for this meeting.");
     if (input.replaceExisting) meeting.rooms = [];
     meeting.rooms = meeting.rooms.filter((r) => r.email !== input.roomEmail);
     meeting.rooms.push({ email: input.roomEmail, name: input.roomName, status: "accepted" });
