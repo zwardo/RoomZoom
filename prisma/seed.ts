@@ -32,7 +32,7 @@ async function seedFloor(building: string, floor: string, drawing: string, annot
 }
 
 for (const floor of demoFloorNames()) {
-  await seedFloor("HQ", floor, demoDrawing(floor), demoAnnotation(floor), "light");
+  await seedFloor("HQ", floor, demoDrawing(floor), demoAnnotation(floor), "dark");
 }
 
 // Traced from the Figma plan, already drawn in the app's dark palette.

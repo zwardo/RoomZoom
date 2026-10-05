@@ -100,8 +100,6 @@ export function FloorMap({
                   className={cn(floor.imageTheme === "light" && "opacity-70 [filter:invert(1)_hue-rotate(180deg)_brightness(0.85)]")}
                 />
               )}
-              {/* Plans are drawn in the app's dark palette and render as-is. */}
-              {floor.imageUrl && <image href={floor.imageUrl} width={w} height={h} />}
               {mapped.map((room) => {
                 const state = stateOf(room, selected?.id);
                 const booth = state !== "selected" && state !== "busy" && PHONE_BOOTH.test(room.name);
