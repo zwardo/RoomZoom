@@ -80,4 +80,6 @@ export interface SearchResponse {
   /** The user's starred rooms and recently used rooms (ids, in display order); empty unless requested. */
   favoriteIds: string[];
   recentIds: string[];
+  /** Meeting ids from the requested windows that `freeFor` was checked against (the list is capped). */
+  coveredIds: string[];
 }
