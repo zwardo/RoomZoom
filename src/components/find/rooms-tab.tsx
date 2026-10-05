@@ -8,6 +8,7 @@ import { type HoveredMeeting, useHoveredMeetingId } from "@/components/meetings/
 import { groupFeatures } from "@/components/rooms/room-card";
 import { Badge } from "@/components/ui/badge";
 import { IconButton } from "@/components/ui/icon-button";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { Meeting } from "@/lib/calendar/types";
 import { roomColumns, type SlotStatus, slotStatus } from "@/lib/rooms/grid";
 import type { RoomResult, SearchResponse } from "@/lib/rooms/types";
@@ -32,23 +33,35 @@ const STATUS_CLASS: Record<SlotStatus, string> = {
 /** A row's band reaches halfway into the 16px gap on each side, for the selected highlight and hover. */
 const ROW_PAD = 8;
 
-function StatusChip({ status }: { status: SlotStatus }) {
-  if (status === "booked") {
-    return (
+function statusTip(status: SlotStatus, bookable: boolean) {
+  switch (status) {
+    case "booked":
+      return "Already booked for this meeting";
+    case "available":
+      return bookable ? "Free for this meeting. Click to book it" : "Free at this time";
+    case "busy":
+      return "Taken by another booking at this time";
+    case "unknown":
+      return "Couldn't check this room's calendar for this time";
+  }
+}
+
+function StatusChip({ status, bookable }: { status: SlotStatus; bookable: boolean }) {
+  const chip =
+    status === "booked" ? (
       <span className="inline-flex h-6 items-center gap-2 text-sm font-medium text-rooms-accent">
         Booked
         <CircleCheck className="size-4" aria-hidden />
       </span>
+    ) : (
+      <Badge
+        variant={status === "busy" ? "destructive" : status === "unknown" ? "outline" : "default"}
+        className={cn("h-6", status === "available" && "bg-rooms-light/20")}
+      >
+        {STATUS_LABEL[status]}
+      </Badge>
     );
-  }
-  return (
-    <Badge
-      variant={status === "busy" ? "destructive" : status === "unknown" ? "outline" : "default"}
-      className={cn("h-6", status === "available" && "bg-rooms-light/20")}
-    >
-      {STATUS_LABEL[status]}
-    </Badge>
-  );
+  return <Tooltip content={statusTip(status, bookable)}>{chip}</Tooltip>;
 }
 
 /**
@@ -90,15 +103,17 @@ const SlotCell = memo(function SlotCell({
         {meeting.title}, {when}:{" "}
       </span>
       <span className="flex w-full items-center justify-between gap-2">
-        <StatusChip status={status} />
+        <StatusChip status={status} bookable={bookable} />
         {tooSmall && (
-          <span title={`Seats ${room.capacity}, ${meeting.acceptedCount} accepted`} className="text-rooms-warn">
-            <AlertTriangle className="size-4" aria-hidden />
-            <span className="sr-only">
-              {" "}
-              (fits {room.capacity} of {meeting.acceptedCount})
+          <Tooltip content={`Too small: seats ${room.capacity}, ${meeting.acceptedCount} accepted`}>
+            <span className="text-rooms-warn">
+              <AlertTriangle className="size-4" aria-hidden />
+              <span className="sr-only">
+                {" "}
+                (fits {room.capacity} of {meeting.acceptedCount})
+              </span>
             </span>
-          </span>
+          </Tooltip>
         )}
       </span>
       {showMeeting && (
@@ -155,28 +170,34 @@ const RoomHeader = memo(function RoomHeader({
     .filter(Boolean)
     .join(" · ");
   return (
-    <header className="sticky top-0 z-10 flex items-start gap-2 bg-rooms-xdark pb-3">
+    <header data-grid-header className="sticky top-0 z-10 flex items-start gap-2 bg-rooms-xdark px-4 pb-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h3 className="truncate text-sm leading-[18px] font-semibold text-white" title={`${room.name} · ${where}`}>
-          {room.name}
-        </h3>
+        <Tooltip content={where ? `${room.name} · ${where}` : room.name} align="start">
+          <h3 className="truncate text-sm leading-[18px] font-semibold text-white">{room.name}</h3>
+        </Tooltip>
         <p className="flex items-center gap-2 text-sm leading-4 text-rooms-xpale">
-          <span className="inline-flex items-center gap-1">
-            <Users className="size-4 text-rooms-light" aria-hidden />
-            {room.capacity ?? "?"}
-            <span className="sr-only"> seats</span>
-          </span>
-          {media.length > 0 && (
-            <span title={media.join(", ")}>
-              <Video className="size-4 text-rooms-light" aria-hidden />
-              <span className="sr-only">{media.join(", ")}</span>
+          <Tooltip content={room.capacity != null ? `Seats ${room.capacity}` : "Seats unknown"}>
+            <span className="inline-flex items-center gap-1">
+              <Users className="size-4 text-rooms-light" aria-hidden />
+              {room.capacity ?? "?"}
+              <span className="sr-only"> seats</span>
             </span>
+          </Tooltip>
+          {media.length > 0 && (
+            <Tooltip content={media.join(", ")}>
+              <span>
+                <Video className="size-4 text-rooms-light" aria-hidden />
+                <span className="sr-only">{media.join(", ")}</span>
+              </span>
+            </Tooltip>
           )}
           {phone.length > 0 && (
-            <span title={phone.join(", ")}>
-              <Phone className="size-4 text-rooms-light" aria-hidden />
-              <span className="sr-only">{phone.join(", ")}</span>
-            </span>
+            <Tooltip content={phone.join(", ")}>
+              <span>
+                <Phone className="size-4 text-rooms-light" aria-hidden />
+                <span className="sr-only">{phone.join(", ")}</span>
+              </span>
+            </Tooltip>
           )}
         </p>
       </div>
@@ -320,7 +341,7 @@ export function RoomsTab({
           <div aria-hidden className="pointer-events-none absolute inset-x-0 bg-rooms-accent/10" style={bandStyle(hoveredRow)} />
         )}
         {columns.map((room) => (
-          <section key={room.id} aria-label={room.name} className="relative w-52 shrink-0 border-r border-rooms-bg-light px-4">
+          <section key={room.id} aria-label={room.name} className="relative w-52 shrink-0 border-r border-rooms-bg-light">
             <RoomHeader room={room} favorite={isFavorite(room)} onToggleFavorite={onToggleFavorite} />
             {aligned?.gaps.map((gap) => (
               <div
@@ -331,7 +352,7 @@ export function RoomsTab({
               />
             ))}
             {alignment && (
-              <ul className={cn(aligned ? "absolute inset-x-4 top-0" : "flex flex-col gap-4 pb-4")}>{cells(room)}</ul>
+              <ul className={cn(aligned ? "absolute inset-x-4 top-0" : "flex flex-col gap-4 px-4 pb-4")}>{cells(room)}</ul>
             )}
           </section>
         ))}

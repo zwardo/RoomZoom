@@ -7,6 +7,7 @@ import { RoomCard } from "@/components/rooms/room-card";
 import { Alert } from "@/components/ui/alert";
 import { Badge, FilterChip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { Meeting } from "@/lib/calendar/types";
 import type { RoomResult, SearchResponse } from "@/lib/rooms/types";
 import { cn } from "@/lib/utils";
@@ -89,6 +90,7 @@ export function RoomsPanel({
     floors.find((f) => f.id === data?.rooms[0]?.floorId) ??
     floors[0] ??
     null;
+  const buildings = [...new Map(floors.map((f) => [f.buildingId, { id: f.buildingId, name: f.buildingName }])).values()];
   const onMeeting = new Set(meeting?.rooms.map((r) => r.email));
   const bookLabel = meeting ? (meeting.rooms.length ? "Switch room" : "Book room") : "Book room";
   // Favorites and recent rooms ride along for the Rooms tab; the map and counts stick to the filters.
@@ -195,14 +197,36 @@ export function RoomsPanel({
 
         {data && view === "map" && (
           <>
-            {floors.length > 1 && (
-              <div className="flex shrink-0 flex-wrap gap-2" role="group" aria-label="Floors">
-                {floors.map((f) => (
-                  <Button key={f.id} size="sm" aria-pressed={f.id === activeFloor?.id} onClick={() => onMapFloorChange(f.id)}>
-                    {data.facets.buildings.length > 1 && `${f.buildingName} · `}Floor {f.name}
-                    {f.id === data.myDesk?.floorId && <span className="text-[10px] opacity-80">(you)</span>}
-                  </Button>
-                ))}
+            {activeFloor && (
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <SegmentedControl
+                  aria-label="Building"
+                  options={buildings.map((b) => ({
+                    value: b.id,
+                    label: b.name.replace(/^Building\b/i, "Bldg"),
+                    srLabel: b.id === data.myDesk?.buildingId ? "(your desk)" : undefined,
+                  }))}
+                  value={activeFloor.buildingId}
+                  onChange={(buildingId) => {
+                    const inBuilding = floors.filter((f) => f.buildingId === buildingId);
+                    const floor =
+                      inBuilding.find((f) => f.id === data.myDesk?.floorId) ??
+                      inBuilding.find((f) => f.id === selected?.floorId) ??
+                      inBuilding[0];
+                    if (floor) onMapFloorChange(floor.id);
+                  }}
+                />
+                <SegmentedControl
+                  aria-label="Floor"
+                  options={floors
+                    .filter((f) => f.buildingId === activeFloor.buildingId)
+                    .map((f) => {
+                      const desk = f.id === data.myDesk?.floorId;
+                      return { value: f.id, label: f.name, srLabel: desk ? "(your desk)" : undefined, tooltip: desk && "Your desk" };
+                    })}
+                  value={activeFloor.id}
+                  onChange={onMapFloorChange}
+                />
               </div>
             )}
             <div className={cn("flex min-h-64 flex-1 items-center justify-center [container-type:size]", loading && "opacity-60")}>
