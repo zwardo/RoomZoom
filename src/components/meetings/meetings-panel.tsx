@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, LoaderCircle } from "lucide-react";
+import { CalendarDays, LoaderCircle, Plus } from "lucide-react";
 import { type ComponentProps, type Ref, useState } from "react";
 import { LocalDayLabel } from "@/components/local-time";
 import { Alert } from "@/components/ui/alert";
@@ -36,6 +36,7 @@ export function MeetingsPanel({
   hovered,
   onSelect,
   onDirections,
+  onCreate,
   date,
   onDateChange,
   scrollRef,
@@ -49,7 +50,9 @@ export function MeetingsPanel({
   /** The meeting shown in its Hover state, e.g. while its row is hovered in the Rooms tab. */
   hovered?: HoveredMeeting;
   onSelect: (view: MeetingView) => void;
-  onDirections: (view: MeetingView) => void;
+  /** Unset hides the cards' directions buttons. */
+  onDirections?: (view: MeetingView) => void;
+  onCreate: () => void;
   /** The applied date filter, or null for the upcoming week. */
   date: Date | null;
   onDateChange: (date: Date | null) => void;
@@ -72,7 +75,7 @@ export function MeetingsPanel({
           selected={v.meeting.id === selectedId}
           hovered={hovered}
           onSelect={() => onSelect(v)}
-          onDirections={() => onDirections(v)}
+          onDirections={onDirections && (() => onDirections(v))}
         />
       </li>
     ));
@@ -84,18 +87,28 @@ export function MeetingsPanel({
         <h2 id="meetings-heading" className="text-xl font-semibold text-rooms-xpale">
           Meetings
         </h2>
-        <IconButton
-          aria-label={pickerOpen ? "Hide calendar" : "Pick a date"}
-          aria-pressed={pickerOpen}
-          aria-expanded={pickerOpen}
-          aria-controls="meetings-date-picker"
-          onClick={() => setPickerOpen((o) => !o)}
-        >
-          <CalendarDays />
-        </IconButton>
+        <div className="flex items-center gap-3">
+          <IconButton aria-label="New meeting" aria-haspopup="dialog" onClick={onCreate}>
+            <Plus />
+          </IconButton>
+          <IconButton
+            aria-label={pickerOpen ? "Hide calendar" : "Pick a date"}
+            aria-pressed={pickerOpen}
+            aria-expanded={pickerOpen}
+            aria-controls="meetings-date-picker"
+            onClick={() => setPickerOpen((o) => !o)}
+          >
+            <CalendarDays />
+          </IconButton>
+        </div>
       </div>
 
-      <div ref={scrollRef} className="scrollbar-auto-hide flex min-h-0 flex-1 flex-col overflow-y-auto pt-1.5 pb-4" aria-busy={loading}>
+      {/* --grid-header-inset is set by the Rooms tab so the first card's row starts below its room headers. */}
+      <div
+        ref={scrollRef}
+        className="scrollbar-auto-hide flex min-h-0 flex-1 flex-col overflow-y-auto pt-[calc(--spacing(1.5)+var(--grid-header-inset,0px))] pb-4"
+        aria-busy={loading}
+      >
         {pickerOpen && (
           <div id="meetings-date-picker" className="flex justify-center px-4 pb-2">
             <Calendar

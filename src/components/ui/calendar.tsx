@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -64,22 +65,26 @@ export function Calendar({
           {label}
         </p>
         <div className="flex items-center gap-1 text-rooms-light">
-          <button
-            type="button"
-            onClick={() => shiftMonth(-1)}
-            aria-label="Previous month"
-            className="rounded-md p-0.5 hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            <ChevronLeft className="size-4" aria-hidden />
-          </button>
-          <button
-            type="button"
-            onClick={() => shiftMonth(1)}
-            aria-label="Next month"
-            className="rounded-md p-0.5 hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            <ChevronRight className="size-4" aria-hidden />
-          </button>
+          <Tooltip content="Previous month">
+            <button
+              type="button"
+              onClick={() => shiftMonth(-1)}
+              aria-label="Previous month"
+              className="rounded-md p-0.5 hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <ChevronLeft className="size-4" aria-hidden />
+            </button>
+          </Tooltip>
+          <Tooltip content="Next month">
+            <button
+              type="button"
+              onClick={() => shiftMonth(1)}
+              aria-label="Next month"
+              className="rounded-md p-0.5 hover:bg-rooms-light/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <ChevronRight className="size-4" aria-hidden />
+            </button>
+          </Tooltip>
         </div>
       </div>
       <div role="grid" aria-label={label} className="grid grid-cols-[repeat(7,1.5rem)] gap-x-4 gap-y-2 text-center text-xs">

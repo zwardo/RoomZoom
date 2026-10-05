@@ -9,7 +9,7 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
 }
 
 export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cn(fieldBase, "pr-8", className)} {...props} />;
+  return <select className={cn(fieldBase, "select-chevron pr-8", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {

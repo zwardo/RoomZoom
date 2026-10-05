@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { MetaList } from "@/components/ui/meta-list";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { DistanceMethod } from "@/lib/rooms/types";
 import { cn, formatFeet } from "@/lib/utils";
 
@@ -31,15 +32,17 @@ export function LocationMeta({
         buildingName,
         floorName && `Floor ${floorName}`,
         distanceFt != null && (
-          <span title={distanceMethod ? methodLabel[distanceMethod] : undefined} className="inline-flex items-center gap-1">
-            {formatFeet(distanceFt)}
-            {distanceMethod === "estimate" && (
-              <>
-                <AlertTriangle className="size-4 text-rooms-warn" aria-hidden />
-                <span className="sr-only">({methodLabel.estimate})</span>
-              </>
-            )}
-          </span>
+          <Tooltip content={distanceMethod && `${formatFeet(distanceFt)}: ${methodLabel[distanceMethod]}`}>
+            <span className="inline-flex items-center gap-1">
+              {formatFeet(distanceFt)}
+              {distanceMethod === "estimate" && (
+                <>
+                  <AlertTriangle className="size-4 text-rooms-warn" aria-hidden />
+                  <span className="sr-only">({methodLabel.estimate})</span>
+                </>
+              )}
+            </span>
+          </Tooltip>
         ),
       ]}
     />
