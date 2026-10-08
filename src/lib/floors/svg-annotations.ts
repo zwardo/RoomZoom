@@ -14,6 +14,10 @@ import type { Point } from "@/lib/rooms/types";
  *   scale-<n>ft (or <n>m)                   line: drawn over a known real-world length
  *
  * The separator after the kind can be "-", "_", ":" or a space.
+ *
+ * If a layer named "annotations" exists, only layers inside it are read, so
+ * drawing layers that happen to be named "Room D" or "Elevator" (Figma names
+ * outlined text after its content) stay part of the drawing.
  */
 export interface FloorAnnotation {
   width: number;
@@ -162,6 +166,12 @@ function labelOf(a: Record<string, string>) {
   return (a["inkscape:label"] ?? a["data-name"] ?? a.id ?? "").trim();
 }
 
+const ANNOTATIONS = /^annotations$/i;
+
+function hasAnnotationsLayer(nodes: XmlNode[]): boolean {
+  return nodes.some((n) => ANNOTATIONS.test(labelOf(n[":@"] ?? {})) || hasAnnotationsLayer(childrenOf(n)));
+}
+
 function bboxCenter(points: Point[]): Point {
   const xs = points.map((p) => p[0]);
   const ys = points.map((p) => p[1]);
@@ -206,19 +216,20 @@ export function parseFloorSvg(svgText: string): FloorAnnotation {
     return childrenOf(node).flatMap((c) => collect(c, local));
   }
 
-  function visit(node: XmlNode, m: Matrix) {
+  function visit(node: XmlNode, m: Matrix, inScope: boolean) {
     const tag = tagOf(node);
     const a = node[":@"] ?? {};
     const local = multiply(m, parseTransform(a.transform));
+    const scoped = inScope || ANNOTATIONS.test(labelOf(a));
 
     if (tag === "image" && !result.background) {
       const href = a.href ?? a["xlink:href"];
       if (href) result.background = { href };
     }
 
-    const match = labelOf(a).match(KIND);
+    const match = scoped ? labelOf(a).match(KIND) : null;
     if (!match || tag === "svg") {
-      childrenOf(node).forEach((c) => visit(c, local));
+      childrenOf(node).forEach((c) => visit(c, local, scoped));
       return;
     }
 
@@ -264,7 +275,7 @@ export function parseFloorSvg(svgText: string): FloorAnnotation {
     }
   }
 
-  visit(root, origin);
+  visit(root, origin, !hasAnnotationsLayer([root]));
   result.rooms = [...rooms.values()];
   return result;
 }
@@ -273,14 +284,17 @@ export function parseFloorSvg(svgText: string): FloorAnnotation {
 export function stripAnnotations(svgText: string): string {
   const options = { ignoreAttributes: false, attributeNamePrefix: "", preserveOrder: true } as const;
   const doc = new XMLParser(options).parse(svgText) as XmlNode[];
-  const keep = (node: XmlNode): XmlNode | null => {
+  const keep = (node: XmlNode, inScope: boolean): XmlNode | null => {
     const tag = tagOf(node);
-    if (tag === "script" || tag === "foreignObject" || KIND.test(labelOf(node[":@"] ?? {}))) return null;
+    const label = labelOf(node[":@"] ?? {});
+    const scoped = inScope || ANNOTATIONS.test(label);
+    if (tag === "script" || tag === "foreignObject" || (scoped && KIND.test(label))) return null;
     const kids = node[tag];
     if (!Array.isArray(kids)) return node;
-    return { ...node, [tag]: (kids as XmlNode[]).map(keep).filter(Boolean) };
+    return { ...node, [tag]: (kids as XmlNode[]).map((c) => keep(c, scoped)).filter(Boolean) };
   };
-  return new XMLBuilder({ ...options, suppressEmptyNode: true }).build(doc.map(keep).filter(Boolean));
+  const everywhere = !hasAnnotationsLayer(doc);
+  return new XMLBuilder({ ...options, suppressEmptyNode: true }).build(doc.map((n) => keep(n, everywhere)).filter(Boolean));
 }
 
 export interface NavGraph {

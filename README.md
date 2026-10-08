@@ -8,11 +8,11 @@ Find and book meeting rooms near your desk. RoomZoom reads your Google Calendar,
 npm install
 cp .env.example .env.local        # then set AUTH_SECRET (openssl rand -base64 32)
 npm run db:push                   # create the SQLite database
-npm run db:seed                   # sample rooms, two demo floors of HQ, Building 2 floor 4, desk assignments
+npm run db:seed                   # sample rooms, every plan in prisma/floors (Buildings 1 and 2), desk assignments
 npm run dev
 ```
 
-Open <http://localhost:3000> and choose **Continue as demo user**. The demo calendar is simulated in memory (it resets when the server restarts), and the demo user sits at desk `2-4046` on Building 2 floor 4.
+Open <http://localhost:3000> and choose **Continue as demo user**. The demo calendar is simulated in memory (it resets when the server restarts), and the demo user sits at desk `2-4100` on Building 2 floor 4.
 
 `npm run db:reset` wipes the database and re-seeds it.
 
@@ -34,6 +34,10 @@ A real user only gets distance sorting once their email has a desk assignment (s
 
 See `data/samples/` for the CSV formats. Room rows may leave building, floor, capacity, and features empty when the name uses Google's `HQ-2-Oak (8) [TV]` format.
 
+The desk import also takes the facilities seating-chart export as is: title rows above the `Desk` header are skipped, `Location` values like `B1L2` set the building and floor, and vacant, no-cube, and hot-desk rows are ignored. A person listed at several desks keeps the desk whose row names them, and an email shared by different people (like `reserved@`) is skipped. Every one of these is listed in the import's warnings.
+
+Real seating charts contain employee names and emails, so keep them in `data/private/` (gitignored). `npm run db:seed` also imports `data/private/desks.csv` when it exists.
+
 The **Admin** page (open to everyone under `npm run dev`, and to `ADMIN_EMAILS` in production) shows which floors are missing a plan, a scale, room outlines, or hallways.
 
 ## Floor plans
@@ -49,7 +53,7 @@ A floor is an SVG whose **layer names** mark what matters. Coordinates are the b
 | `stairs-<key>`, `elevator-<key>` | any | Use the same key on every floor to link floors |
 | `scale-<n>ft` (or `m`) | line | Drawn over a known real length, which sets the distance scale |
 
-The separator after the kind can be `-`, `_`, `:` or a space, so names survive Figma's and Inkscape's SVG export. Group layers work too.
+The separator after the kind can be `-`, `_`, `:` or a space, so names survive Figma's and Inkscape's SVG export. Group layers work too. If the SVG has a layer named `annotations`, only layers inside it are read, so drawing layers Figma names after their text (like an outlined "Room D" label) are left alone. In Figma, export with **Include "id" attribute** on, or every layer name is lost.
 
 **From a JPG scan:**
 
@@ -66,6 +70,10 @@ If you know the drawing scale and scan resolution instead, pass `--scale 1/8 --d
 ```bash
 npm run import:floor -- --building "Building 2" --floor 4 --svg prisma/floors/building-2-4.svg --theme dark
 ```
+
+**Traced from a scan:** for buildings with a shared outline in `scripts/floors/shells.ts`, describe the interior in `scripts/floors/specs/<building>-<floor>.ts` (scan-pixel coordinates plus three points fitting the scan to the outline) and run `npm run trace:floor -- building-2-1` (or `--all`). It writes `prisma/floors/<spec>.svg` in the dark palette, with the building's exterior wall, stairs, elevators, and scale identical on every floor. `prisma/floors/building-2-1.svg` has since been edited by hand in Figma, so don't regenerate it (`--all` would overwrite it).
+
+`npm run db:seed` imports every `prisma/floors/building-<n>-<floor>.svg`. A room outline only links to a room that exists in the catalog with a matching name or email, so add new bookable rooms to `data/samples/rooms.csv` (or sync them from Google) before seeding.
 
 ### How distance works
 
@@ -85,7 +93,7 @@ src/lib/floors/          SVG annotation parser, floor import, image storage
 src/lib/geo/             hallway-graph distance and desk lookup
 src/lib/ocr/             Cloud Vision OCR and starter SVG generation
 scripts/                 command-line imports and sync
-prisma/                  schema, seed, generated demo floors
+prisma/                  schema, seed
 prisma/floors/           annotated floor plans the seed imports
 ```
 

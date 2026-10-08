@@ -1,19 +1,81 @@
 email,name,building,floor,capacity,features
-c_hq2_oak@resource.calendar.google.com,HQ-2-Oak (8) [TV; Whiteboard],,,,
-c_hq2_birch@resource.calendar.google.com,HQ-2-Birch (4) [TV],,,,
-c_hq2_cedar@resource.calendar.google.com,HQ-2-Cedar (12) [TV; Video conferencing; Whiteboard],,,,
-c_hq2_pine@resource.calendar.google.com,HQ-2-Pine (2),,,,
-c_hq2_willow@resource.calendar.google.com,HQ-2-Willow (6) [Whiteboard],,,,
-c_hq3_maple@resource.calendar.google.com,Maple,HQ,3,10,TV;Video conferencing
-c_hq3_aspen@resource.calendar.google.com,Aspen,HQ,3,4,Whiteboard
-c_hq3_spruce@resource.calendar.google.com,Spruce,HQ,3,20,TV;Video conferencing;Whiteboard;Wheelchair accessible
-c_hq3_elm@resource.calendar.google.com,Elm,HQ,3,2,
-c_hq3_hazel@resource.calendar.google.com,Hazel,HQ,3,6,TV
-c_b2_4_dry_creek@resource.calendar.google.com,Dry Creek,Building 2,4,6,
-c_b2_4_library@resource.calendar.google.com,Library,Building 2,4,30,
-c_b2_4_gregory_canyon@resource.calendar.google.com,Gregory Canyon,Building 2,4,8,
-c_b2_4_flagstaff@resource.calendar.google.com,Flagstaff,Building 2,4,8,
-c_b2_4_chautauqua@resource.calendar.google.com,Chautauqua,Building 2,4,24,
-c_b2_4_crown_rock@resource.calendar.google.com,Crown Rock,Building 2,4,6,
-c_b2_4_bear_canyon@resource.calendar.google.com,Bear Canyon,Building 2,4,6,
-c_b2_4_red_rocks@resource.calendar.google.com,Red Rocks,Building 2,4,6,
+c_b2_4_dry_creek@resource.calendar.google.com,Dry Creek,Building 2,4,4,
+c_b2_4_library@resource.calendar.google.com,Library,Building 2,4,22,
+c_b2_4_gregory_canyon@resource.calendar.google.com,Gregory Canyon,Building 2,4,10,
+c_b2_4_flagstaff@resource.calendar.google.com,Flagstaff,Building 2,4,14,
+c_b2_4_chautauqua@resource.calendar.google.com,Chautauqua,Building 2,4,18,
+c_b2_4_crown_rock@resource.calendar.google.com,Crown Rock,Building 2,4,9,
+c_b2_4_bear_canyon@resource.calendar.google.com,Bear Canyon,Building 2,4,8,
+c_b2_4_red_rocks@resource.calendar.google.com,Red Rocks,Building 2,4,8,
+c_b1_1_training_room_1@resource.calendar.google.com,Training Room 1,Building 1,1,44,Projector
+c_b1_1_training_room_2@resource.calendar.google.com,Training Room 2,Building 1,1,34,Projector
+c_b1_1_training_room_3@resource.calendar.google.com,Training Room 3,Building 1,1,18,Projector
+c_b1_1_mt_whitney@resource.calendar.google.com,Mt. Whitney,Building 1,1,14,Video conferencing;TV
+c_b1_1_mt_mckinley@resource.calendar.google.com,Mt. McKinley,Building 1,1,14,Video conferencing;TV
+c_b1_1_mt_evans@resource.calendar.google.com,Mt. Blue Sky,Building 1,1,14,Video conferencing;TV
+c_b1_1_mt_hood@resource.calendar.google.com,Mt. Hood,Building 1,1,,
+c_b1_1_mt_bear@resource.calendar.google.com,Mt. Bear,Building 1,1,4,TV
+c_b1_2_adams_peak@resource.calendar.google.com,Adam's Peak,Building 1,2,11,Video conferencing;TV
+c_b1_2_mt_fuji@resource.calendar.google.com,Mt. Fuji,Building 1,2,11,Video conferencing;TV
+c_b1_2_kamet@resource.calendar.google.com,Kamet,Building 1,2,10,
+c_b1_2_mt_tasman@resource.calendar.google.com,Mt. Tasman,Building 1,2,4,
+c_b1_2_leila_peak@resource.calendar.google.com,Leila Peak,Building 1,2,4,TV
+c_b1_2_jade_mtn@resource.calendar.google.com,Jade Mtn,Building 1,2,10,TV
+c_b1_2_everest@resource.calendar.google.com,Everest,Building 1,2,14,TV
+c_b1_2_pumori@resource.calendar.google.com,Pumori,Building 1,2,6,
+c_b1_2_haramosh@resource.calendar.google.com,Haramosh,Building 1,2,4,
+c_b1_2_k2@resource.calendar.google.com,K2,Building 1,2,11,Video conferencing;TV
+c_b1_2_chembra_peak@resource.calendar.google.com,Chembra Peak,Building 1,2,11,Video conferencing;TV
+c_b1_3_mt_sinai@resource.calendar.google.com,Mt. Sinai,Building 1,3,11,Video conferencing;TV
+c_b1_3_mt_kilimanjaro@resource.calendar.google.com,Mt. Kilimanjaro,Building 1,3,11,Video conferencing;TV
+c_b1_3_mt_tyree@resource.calendar.google.com,Mt. Tyree,Building 1,3,4,
+c_b1_3_mt_moroto@resource.calendar.google.com,Mt. Moroto,Building 1,3,6,
+c_b1_3_mt_cameroon@resource.calendar.google.com,Mt. Cameroon,Building 1,3,10,TV
+c_b1_3_mt_elkins@resource.calendar.google.com,Mt. Elkins,Building 1,3,10,TV
+c_b1_3_mt_markham@resource.calendar.google.com,Mt. Markham,Building 1,3,15,Projector
+c_b1_3_table_mountain@resource.calendar.google.com,Table Mountain,Building 1,3,6,
+c_b1_3_mt_kenya@resource.calendar.google.com,Mt. Kenya,Building 1,3,6,TV
+c_b1_3_mt_emin@resource.calendar.google.com,Mt. Emin,Building 1,3,6,
+c_b1_3_mt_jackson@resource.calendar.google.com,Mt. Jackson,Building 1,3,15,Video conferencing;TV
+c_b1_3_mt_baker@resource.calendar.google.com,Mt. Baker,Building 1,3,15,Video conferencing;TV
+c_b1_4_matterhorn@resource.calendar.google.com,Matterhorn,Building 1,4,17,Projector
+c_b1_4_hekla@resource.calendar.google.com,Hekla,Building 1,4,4,
+c_b1_4_cotopaxi@resource.calendar.google.com,Cotopaxi,Building 1,4,5,
+c_b1_4_dom@resource.calendar.google.com,Dom,Building 1,4,12,TV
+c_b1_4_illimani@resource.calendar.google.com,Illimani,Building 1,4,10,Projector
+c_b1_4_nadelhorn@resource.calendar.google.com,Nadelhorn,Building 1,4,5,
+c_b1_4_brocken@resource.calendar.google.com,Brocken,Building 1,4,5,
+c_b1_4_olympus@resource.calendar.google.com,Olympus,Building 1,4,11,Video conferencing;TV
+c_b1_4_mt_blanc@resource.calendar.google.com,Mt. Blanc,Building 1,4,11,Video conferencing;TV
+c_b2_1_training_room_d@resource.calendar.google.com,Training Room D,Building 2,1,30,
+c_b2_1_training_room_e@resource.calendar.google.com,Training Room E,Building 2,1,34,
+c_b2_1_training_room_f@resource.calendar.google.com,Training Room F,Building 2,1,20,
+c_b2_1_lovelace@resource.calendar.google.com,Lovelace,Building 2,1,12,
+c_b2_1_einstein@resource.calendar.google.com,Einstein,Building 2,1,10,
+c_b2_1_galileo@resource.calendar.google.com,Galileo,Building 2,1,16,
+c_b2_1_newton@resource.calendar.google.com,Newton,Building 2,1,1,
+c_b2_1_curie@resource.calendar.google.com,Curie,Building 2,1,14,
+c_b2_2_socrates@resource.calendar.google.com,Socrates,Building 2,2,20,
+c_b2_2_beauvoir@resource.calendar.google.com,Beauvoir,Building 2,2,6,
+c_b2_2_confucius@resource.calendar.google.com,Confucius,Building 2,2,6,
+c_b2_2_camus@resource.calendar.google.com,Camus,Building 2,2,8,
+c_b2_2_dewey@resource.calendar.google.com,Dewey,Building 2,2,8,
+c_b2_2_aristotle@resource.calendar.google.com,Aristotle,Building 2,2,18,
+c_b2_2_descartes@resource.calendar.google.com,Descartes,Building 2,2,12,
+c_b2_2_hobbes@resource.calendar.google.com,Hobbes,Building 2,2,12,
+c_b2_2_voltaire@resource.calendar.google.com,Voltaire,Building 2,2,6,
+c_b2_2_schweitzer@resource.calendar.google.com,Schweitzer,Building 2,2,6,
+c_b2_2_plato@resource.calendar.google.com,Plato,Building 2,2,20,
+c_b2_3_bach@resource.calendar.google.com,Bach,Building 2,3,18,
+c_b2_3_vaughn@resource.calendar.google.com,Vaughn,Building 2,3,6,
+c_b2_3_parker@resource.calendar.google.com,Parker,Building 2,3,6,
+c_b2_3_coltrane@resource.calendar.google.com,Coltrane,Building 2,3,6,
+c_b2_3_davis@resource.calendar.google.com,Davis,Building 2,3,6,
+c_b2_3_bizet@resource.calendar.google.com,Bizet,Building 2,3,14,
+c_b2_3_lennon@resource.calendar.google.com,Lennon,Building 2,3,10,
+c_b2_3_dylan@resource.calendar.google.com,Dylan,Building 2,3,10,
+c_b2_3_martin@resource.calendar.google.com,Martin,Building 2,3,6,
+c_b2_3_sinatra@resource.calendar.google.com,Sinatra,Building 2,3,6,
+c_b2_3_caruso@resource.calendar.google.com,Caruso,Building 2,3,18,
+c_b2_1_media_studio@resource.calendar.google.com,Media Studio,Building 2,1,6,
+c_b2_3_cash@resource.calendar.google.com,Cash,Building 2,3,4,

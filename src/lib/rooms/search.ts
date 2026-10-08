@@ -103,7 +103,8 @@ export async function searchRooms(
   const matchesFilters = (r: (typeof allRooms)[number]) => {
     if (params.buildingId && r.buildingId !== params.buildingId) return false;
     if (params.floorId && r.floorId !== params.floorId) return false;
-    if (params.minCapacity && (r.capacity ?? 0) < params.minCapacity) return false;
+    // Unknown capacity isn't "too small": those rooms stay listed and sort after rooms known to fit.
+    if (params.minCapacity && r.capacity != null && r.capacity < params.minCapacity) return false;
     const features = parseJsonArray<string>(r.features);
     return params.features.every((f) => features.includes(f));
   };
