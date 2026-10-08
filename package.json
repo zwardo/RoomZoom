@@ -17,7 +17,8 @@
     "import:desks": "node --env-file=.env.local --import tsx scripts/import-desks-csv.ts",
     "import:floor": "node --env-file=.env.local --import tsx scripts/import-floor.ts",
     "sync:directory": "node --env-file=.env.local --import tsx scripts/sync-directory.ts",
-    "ocr:floor": "node --env-file=.env.local --import tsx scripts/ocr-floor.ts"
+    "ocr:floor": "node --env-file=.env.local --import tsx scripts/ocr-floor.ts",
+    "trace:floor": "node --import tsx scripts/trace-floor.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

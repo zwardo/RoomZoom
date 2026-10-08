@@ -138,3 +138,28 @@ describe("helpers", () => {
     expect(out).toContain("<image");
   });
 });
+
+describe("an SVG with an annotations layer", () => {
+  // Figma names outlined text layers after their content.
+  const SCOPED = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <g id="plan"><path id="Room D" d="M0 0H5V5H0Z"/><path id="Elevator" d="M10 10H15"/></g>
+    <g id="annotations">
+      <rect id="room-oak" x="20" y="20" width="10" height="10"/>
+      <circle id="door-oak" cx="25" cy="30" r="1"/>
+    </g>
+  </svg>`;
+
+  it("reads only the layers inside it", () => {
+    const a = parseFloorSvg(SCOPED);
+    expect(a.rooms.map((r) => r.key)).toEqual(["oak"]);
+    expect(a.connectors).toEqual([]);
+    expect(a.warnings).toEqual([]);
+  });
+
+  it("keeps same-named drawing layers when stripping", () => {
+    const out = stripAnnotations(SCOPED);
+    expect(out).toContain(`id="Room D"`);
+    expect(out).toContain(`id="Elevator"`);
+    expect(out).not.toContain("room-oak");
+  });
+});
