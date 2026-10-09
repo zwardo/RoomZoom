@@ -43,8 +43,22 @@ describe("parseFloorSvg", () => {
           [110, 70],
           [10, 70],
         ],
-        door: [60, 70],
+        doors: [[60, 70]],
       },
+    ]);
+  });
+
+  it("collects numbered extra doors onto the room they belong to", () => {
+    const b = parseFloorSvg(`<svg viewBox="0 0 100 100">
+      <rect id="room-oak" x="0" y="0" width="10" height="10"/>
+      <circle id="door-oak-2" cx="10" cy="5" r="1"/>
+      <circle id="door-oak-1" cx="0" cy="5" r="1"/>
+      <rect id="room-training-room-2" x="50" y="0" width="10" height="10"/>
+      <circle id="door-training-room-2" cx="55" cy="10" r="1"/>
+    </svg>`);
+    expect(b.rooms).toEqual([
+      expect.objectContaining({ key: "oak", doors: [[0, 5], [10, 5]] }),
+      expect.objectContaining({ key: "training-room-2", doors: [[55, 10]] }),
     ]);
   });
 

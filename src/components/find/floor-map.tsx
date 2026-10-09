@@ -64,8 +64,8 @@ export function FloorMap({
   className?: string;
 }) {
   const { widthPx: w, heightPx: h } = floor;
-  const mapped = rooms.filter((r) => r.floorId === floor.id && (r.polygon || r.door));
-  const unmapped = rooms.filter((r) => r.floorId === floor.id && !r.polygon && !r.door).length;
+  const mapped = rooms.filter((r) => r.floorId === floor.id && (r.polygon || r.doors.length));
+  const unmapped = rooms.filter((r) => r.floorId === floor.id && !r.polygon && !r.doors.length).length;
   const deskHere = desk?.floorId === floor.id ? desk : null;
   const route = selected?.route?.find((r) => r.floorId === floor.id)?.points;
   // Marker sizes scale with the drawing so they stay legible on large scans.
@@ -128,7 +128,7 @@ export function FloorMap({
                 if (!room.polygon) {
                   return (
                     <Tooltip key={room.id} content={tip}>
-                      <circle cx={room.door![0]} cy={room.door![1]} r={unit * 1.5} {...common} />
+                      <circle cx={room.doors[0][0]} cy={room.doors[0][1]} r={unit * 1.5} {...common} />
                     </Tooltip>
                   );
                 }

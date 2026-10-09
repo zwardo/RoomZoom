@@ -503,30 +503,30 @@
 </g>
 <g id="annotations" fill="none" stroke="#8af0cb" stroke-width="4" opacity="0.8">
   <g id="rooms">
-    <polygon id="room-sinai" points="2247.1,175 2279.8,29.4 2537.2,29.4 2537.2,175 2583.9,175 2583.9,379.6 2233.1,379.6"/>
-    <circle id="door-sinai" cx="2583.9" cy="334.2" r="10"/>
-    <polygon id="room-kilimanjaro" points="2233.1,379.6 2583.9,379.6 2583.9,598 2219,598"/>
-    <circle id="door-kilimanjaro" cx="2583.9" cy="561.6" r="10"/>
-    <polygon id="room-tyree" points="85.7,879.9 296.2,879.9 296.2,1071 85.7,1071"/>
-    <circle id="door-tyree" cx="296.2" cy="948.2" r="10"/>
-    <polygon id="room-moroto" points="85.7,1071 296.2,1071 296.2,1257.5 85.7,1257.5"/>
-    <circle id="door-moroto" cx="296.2" cy="1207.4" r="10"/>
-    <polygon id="room-cameroon" points="1217.8,857.2 1592.1,857.2 1592.1,1071 1217.8,1071"/>
-    <circle id="door-cameroon" cx="1288" cy="857.2" r="10"/>
-    <polygon id="room-elkins" points="1217.8,1071 1592.1,1071 1592.1,1289.3 1217.8,1289.3"/>
-    <circle id="door-elkins" cx="1288" cy="1289.3" r="10"/>
-    <polygon id="room-markham" points="2350,848.1 2583.9,848.1 2583.9,1371.2 2350,1371.2"/>
-    <circle id="door-markham" cx="2574.6" cy="879.9" r="10"/>
+    <polygon id="room-mt-sinai" points="2247.1,175 2279.8,29.4 2537.2,29.4 2537.2,175 2583.9,175 2583.9,379.6 2233.1,379.6"/>
+    <circle id="door-mt-sinai" cx="2583.9" cy="334.2" r="10"/>
+    <polygon id="room-mt-kilimanjaro" points="2233.1,379.6 2583.9,379.6 2583.9,598 2219,598"/>
+    <circle id="door-mt-kilimanjaro" cx="2583.9" cy="561.6" r="10"/>
+    <polygon id="room-mt-tyree" points="85.7,879.9 296.2,879.9 296.2,1071 85.7,1071"/>
+    <circle id="door-mt-tyree" cx="296.2" cy="948.2" r="10"/>
+    <polygon id="room-mt-moroto" points="85.7,1071 296.2,1071 296.2,1257.5 85.7,1257.5"/>
+    <circle id="door-mt-moroto" cx="296.2" cy="1207.4" r="10"/>
+    <polygon id="room-mt-cameroon" points="1217.8,857.2 1592.1,857.2 1592.1,1071 1217.8,1071"/>
+    <circle id="door-mt-cameroon" cx="1288" cy="857.2" r="10"/>
+    <polygon id="room-mt-elkins" points="1217.8,1071 1592.1,1071 1592.1,1289.3 1217.8,1289.3"/>
+    <circle id="door-mt-elkins" cx="1288" cy="1289.3" r="10"/>
+    <polygon id="room-mt-markham" points="2350,848.1 2583.9,848.1 2583.9,1371.2 2350,1371.2"/>
+    <circle id="door-mt-markham" cx="2574.6" cy="879.9" r="10"/>
     <polygon id="room-table-mountain" points="3267,857.2 3454.1,857.2 3454.1,1107.4 3267,1107.4"/>
     <circle id="door-table-mountain" cx="3285.7" cy="857.2" r="10"/>
-    <polygon id="room-kenya" points="4389.8,879.9 4609.7,879.9 4609.7,1071 4389.8,1071"/>
-    <circle id="door-kenya" cx="4389.8" cy="948.2" r="10"/>
-    <polygon id="room-emin" points="4389.8,1071 4609.7,1071 4609.7,1257.5 4389.8,1257.5"/>
-    <circle id="door-emin" cx="4389.8" cy="1207.4" r="10"/>
-    <polygon id="room-jackson" points="2106.7,1530.4 2350,1530.4 2350,1971.5 2106.7,1971.5"/>
-    <circle id="door-jackson" cx="2130.1" cy="1562.2" r="10"/>
-    <polygon id="room-baker" points="2350,1530.4 2583.9,1530.4 2583.9,1971.5 2350,1971.5"/>
-    <circle id="door-baker" cx="2551.2" cy="1562.2" r="10"/>
+    <polygon id="room-mt-kenya" points="4389.8,879.9 4609.7,879.9 4609.7,1071 4389.8,1071"/>
+    <circle id="door-mt-kenya" cx="4389.8" cy="948.2" r="10"/>
+    <polygon id="room-mt-emin" points="4389.8,1071 4609.7,1071 4609.7,1257.5 4389.8,1257.5"/>
+    <circle id="door-mt-emin" cx="4389.8" cy="1207.4" r="10"/>
+    <polygon id="room-mt-jackson" points="2106.7,1530.4 2350,1530.4 2350,1971.5 2106.7,1971.5"/>
+    <circle id="door-mt-jackson" cx="2130.1" cy="1562.2" r="10"/>
+    <polygon id="room-mt-baker" points="2350,1530.4 2583.9,1530.4 2583.9,1971.5 2350,1971.5"/>
+    <circle id="door-mt-baker" cx="2551.2" cy="1562.2" r="10"/>
   </g>
   <g id="desks">
     <circle id="desk-1-3000" cx="167.8" cy="259.1" r="8"/>

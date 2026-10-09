@@ -23,9 +23,10 @@ export async function findMyDesk(email: string): Promise<MyDesk | null> {
   return { label: desk.label, floorId: desk.floorId, buildingId: desk.floor.buildingId, x: desk.x, y: desk.y };
 }
 
-/** Where a room's walking distance is measured from: its door, else the middle of its outline. */
-function roomPoint(room: { doorX: number | null; doorY: number | null; polygon: string | null }): Point | null {
-  if (room.doorX != null && room.doorY != null) return [room.doorX, room.doorY];
+/** Where a room's walking distance is measured from: its first door, else the middle of its outline. */
+function roomPoint(room: { doors: string | null; polygon: string | null }): Point | null {
+  const doors = room.doors ? parseJsonArray<Point>(room.doors) : [];
+  if (doors.length) return doors[0];
   const polygon = room.polygon ? parseJsonArray<Point>(room.polygon) : [];
   return polygon.length ? centroid(polygon) : null;
 }
@@ -72,9 +73,13 @@ export async function getDistanceResolver(email: string, opts: { fromRoomId?: st
     desk,
     fromRoom: origin === desk || !fromRoom ? null : { id: fromRoom.id, name: fromRoom.name },
     measure(room) {
-      if (!room.floorId) return { distanceFt: null, distanceMethod: null };
-      const point = room.door ?? (room.polygon?.length ? centroid(room.polygon) : null);
-      return measure(point ? { floorId: room.floorId, x: point[0], y: point[1] } : null);
+      const { floorId } = room;
+      if (!floorId) return { distanceFt: null, distanceMethod: null };
+      const points = room.doors.length ? room.doors : room.polygon?.length ? [centroid(room.polygon)] : [];
+      if (!points.length) return measure(null);
+      return points
+        .map(([x, y]) => measure({ floorId, x, y }))
+        .reduce((best, m) => (m.distanceFt != null && (best.distanceFt == null || m.distanceFt < best.distanceFt) ? m : best));
     },
   };
 }

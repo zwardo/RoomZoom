@@ -65,8 +65,8 @@ model Room {
   features      String   @default("[]")
   /// JSON array of [x, y] points in floor pixel space.
   polygon       String?
-  doorX         Float?
-  doorY         Float?
+  /// JSON array of [x, y] door points in floor pixel space; distances use the nearest.
+  doors         String?
   /// "csv" | "directory" | "harvest" | "seed"
   source        String   @default("csv")
   updatedAt     DateTime @updatedAt

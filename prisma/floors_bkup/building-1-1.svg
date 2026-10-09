@@ -28,7 +28,7 @@
 <text x="1734.2" y="288.8" font-family="Roboto Mono, ui-monospace, Menlo, monospace" font-size="30" font-weight="600" fill="#edeaff" text-anchor="middle" dominant-baseline="central">McKinley</text>
 <text x="1734.2" y="329.3" font-family="Roboto Mono, ui-monospace, Menlo, monospace" font-size="30" font-weight="600" fill="#edeaff" text-anchor="middle" dominant-baseline="central">109</text>
 <polygon points="1851.3,88.6 2085.4,88.6 2085.4,488.9 1851.3,488.9" fill="none" stroke="#39395b" stroke-width="4"/>
-<text x="1968.4" y="268.6" font-family="Roboto Mono, ui-monospace, Menlo, monospace" font-size="30" font-weight="600" fill="#edeaff" text-anchor="middle" dominant-baseline="central">Mt. Evans</text>
+<text x="1968.4" y="268.6" font-family="Roboto Mono, ui-monospace, Menlo, monospace" font-size="30" font-weight="600" fill="#edeaff" text-anchor="middle" dominant-baseline="central">Mt. Blue Sky</text>
 <text x="1968.4" y="309.1" font-family="Roboto Mono, ui-monospace, Menlo, monospace" font-size="30" font-weight="600" fill="#edeaff" text-anchor="middle" dominant-baseline="central">108</text>
 <polygon points="1546.9,672.9 1898.1,672.9 1898.1,834 1546.9,834" fill="#4737b2" fill-opacity=".2" stroke="#4737b2" stroke-width="4"/>
 <text x="1722.5" y="738.7" font-family="Roboto Mono, ui-monospace, Menlo, monospace" font-size="22" font-weight="400" fill="#9186b2" text-anchor="middle" dominant-baseline="central">Training Rm</text>
@@ -283,16 +283,16 @@
     <circle id="door-training-room-2" cx="938.1" cy="705.2" r="10"/>
     <polygon id="room-training-room-3" points="1041.1,88.6 1383,88.6 1383,603.9 1041.1,672.9"/>
     <circle id="door-training-room-3" cx="1322.1" cy="613.1" r="10"/>
-    <polygon id="room-whitney" points="1383,88.6 1617.1,88.6 1617.1,488.9 1383,488.9"/>
-    <circle id="door-whitney" cx="1415.7" cy="488.9" r="10"/>
-    <polygon id="room-mckinley" points="1617.1,88.6 1851.3,88.6 1851.3,488.9 1617.1,488.9"/>
-    <circle id="door-mckinley" cx="1649.9" cy="488.9" r="10"/>
-    <polygon id="room-evans" points="1851.3,88.6 2085.4,88.6 2085.4,488.9 1851.3,488.9"/>
-    <circle id="door-evans" cx="1884.1" cy="488.9" r="10"/>
-    <polygon id="room-hood" points="1898.1,672.9 2085.4,672.9 2085.4,834 1898.1,834"/>
-    <circle id="door-hood" cx="2085.4" cy="719" r="10"/>
-    <polygon id="room-bear" points="2577.2,281.8 2787.9,281.8 2787.9,452.1 2577.2,452.1"/>
-    <circle id="door-bear" cx="2787.9" cy="318.7" r="10"/>
+    <polygon id="room-mt-whitney" points="1383,88.6 1617.1,88.6 1617.1,488.9 1383,488.9"/>
+    <circle id="door-mt-whitney" cx="1415.7" cy="488.9" r="10"/>
+    <polygon id="room-mt-mckinley" points="1617.1,88.6 1851.3,88.6 1851.3,488.9 1617.1,488.9"/>
+    <circle id="door-mt-mckinley" cx="1649.9" cy="488.9" r="10"/>
+    <polygon id="room-mt-blue-sky" points="1851.3,88.6 2085.4,88.6 2085.4,488.9 1851.3,488.9"/>
+    <circle id="door-mt-blue-sky" cx="1884.1" cy="488.9" r="10"/>
+    <polygon id="room-mt-hood" points="1898.1,672.9 2085.4,672.9 2085.4,834 1898.1,834"/>
+    <circle id="door-mt-hood" cx="2085.4" cy="719" r="10"/>
+    <polygon id="room-mt-bear" points="2577.2,281.8 2787.9,281.8 2787.9,452.1 2577.2,452.1"/>
+    <circle id="door-mt-bear" cx="2787.9" cy="318.7" r="10"/>
   </g>
   <g id="desks">
     <circle id="desk-1-1000" cx="2960.2" cy="265.7" r="8"/>
