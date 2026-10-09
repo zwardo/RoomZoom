@@ -20,7 +20,8 @@ export interface RoomResult {
   capacity: number | null;
   features: string[];
   polygon: Point[] | null;
-  door: Point | null;
+  /** Empty when no door is drawn. */
+  doors: Point[];
   /** null when free/busy couldn't be read for this room. */
   available: boolean | null;
   availabilityError?: string;

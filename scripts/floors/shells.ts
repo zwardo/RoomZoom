@@ -30,8 +30,8 @@ export const SHELLS = {
     ],
     scale: { feet: 240, from: [0, 2068], to: [4688, 2068] },
   },
-  // Traced from B1F4.jpg. No CAD source, so the wings are assumed to match Building 2's
-  // 240 ft and the scan gets Building 2's vertical correction; the north bay sits above.
+  // Traced from B1F4.jpg. No CAD source; the scan gets Building 2's vertical correction and
+  // the north bay sits above. The 270 ft scale spans the exterior wall's inside faces.
   "Building 1": {
     width: 4688,
     height: 2079,
@@ -47,7 +47,7 @@ export const SHELLS = {
       { type: "stairs", key: "east", at: [4040, 845] },
       { type: "elevator", key: "main", at: [2140, 1096] },
     ],
-    scale: { feet: 240, from: [0, 2071], to: [4688, 2071] },
+    scale: { feet: 270, from: [32, 2071], to: [4654, 2071] },
   },
 } satisfies Record<string, BuildingShell>;
 

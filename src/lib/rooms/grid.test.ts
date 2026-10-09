@@ -15,7 +15,7 @@ function room(name: string, over: Partial<RoomResult> = {}): RoomResult {
     capacity: 4,
     features: [],
     polygon: null,
-    door: null,
+    doors: [],
     available: true,
     busy: [],
     distanceFt: 100,

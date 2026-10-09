@@ -34,6 +34,9 @@ export interface Measurement {
 
 const NONE: Measurement = { distanceFt: null, distanceMethod: null };
 
+/** One flight of stairs: "<key>-down" is its top landing, "<key>-up" its bottom landing on the floor below. */
+const FLIGHT = /^(.+)-(up|down)$/;
+
 export function centroid(points: Point[]): Point {
   const [sx, sy] = points.reduce(([ax, ay], [x, y]) => [ax + x, ay + y], [0, 0]);
   return [sx / points.length, sy / points.length];
@@ -59,6 +62,8 @@ interface Snap {
 /**
  * Walking distance over a hallway graph. Stairs/elevator nodes that share a
  * `connectorKey` link floors, each floor change costing `floorChangePenaltyFt`.
+ * A "-down"/"-up" key pair is a single flight instead: it links only a floor's
+ * "-down" node to the "-up" node one level below.
  * Points (desks, doors) join the graph at the nearest point on a hallway.
  * Without a usable graph it falls back to straight-line distance on the same
  * floor, or straight line plus the floor penalty across floors ("estimate").
@@ -102,12 +107,20 @@ export function createDistanceMeasurer(opts: {
   for (const n of opts.nodes) {
     if (n.connectorKey) connectors.set(n.connectorKey, [...(connectors.get(n.connectorKey) ?? []), n]);
   }
-  for (const group of connectors.values()) {
-    for (let i = 0; i < group.length; i++) {
-      for (let j = i + 1; j < group.length; j++) {
-        const fa = floors.get(group[i].floorId);
-        const fb = floors.get(group[j].floorId);
-        if (fa && fb && fa.id !== fb.id && fa.buildingId === fb.buildingId) link(group[i].id, group[j].id, levelPenalty(fa, fb));
+  const linkFloors = (a: GeoNode, b: GeoNode, accept: (fa: GeoFloor, fb: GeoFloor) => boolean) => {
+    const fa = floors.get(a.floorId);
+    const fb = floors.get(b.floorId);
+    if (fa && fb && fa.id !== fb.id && fa.buildingId === fb.buildingId && accept(fa, fb)) link(a.id, b.id, levelPenalty(fa, fb));
+  };
+  for (const [key, group] of connectors) {
+    const flight = key.match(FLIGHT);
+    if (flight?.[2] === "down") {
+      for (const top of group) {
+        for (const bottom of connectors.get(`${flight[1]}-up`) ?? []) linkFloors(top, bottom, (fa, fb) => fb.level === fa.level - 1);
+      }
+    } else if (!flight) {
+      for (let i = 0; i < group.length; i++) {
+        for (let j = i + 1; j < group.length; j++) linkFloors(group[i], group[j], () => true);
       }
     }
   }

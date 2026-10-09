@@ -51,6 +51,11 @@ export async function applyFloorAnnotation(opts: {
       if (k && !byKey.has(normalize(k))) byKey.set(normalize(k), r);
     }
   }
+  // Mountain rooms may be drawn without their title, e.g. room-whitney for "Mt. Whitney".
+  for (const r of rooms) {
+    const short = normalize(r.name.replace(/^(mt\.?|mount)\s+/i, ""));
+    if (short && !byKey.has(short)) byKey.set(short, r);
+  }
 
   const mapped = new Set<string>();
   const roomsMapped: string[] = [];
@@ -68,15 +73,14 @@ export async function applyFloorAnnotation(opts: {
       data: {
         floorId: floor.id,
         polygon: drawn.polygon ? JSON.stringify(drawn.polygon) : null,
-        doorX: drawn.door?.[0] ?? null,
-        doorY: drawn.door?.[1] ?? null,
+        doors: drawn.doors.length ? JSON.stringify(drawn.doors) : null,
       },
     });
   }
   // Rooms removed from the drawing lose their outline but stay bookable.
   await db.room.updateMany({
     where: { floorId: floor.id, id: { notIn: [...mapped] } },
-    data: { polygon: null, doorX: null, doorY: null },
+    data: { polygon: null, doors: null },
   });
 
   await db.desk.deleteMany({ where: { floorId: floor.id } });

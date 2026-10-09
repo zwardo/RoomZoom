@@ -69,7 +69,7 @@ export interface DistanceResolver {
   measure(room: {
     floorId: string | null;
     buildingId: string;
-    door: Point | null;
+    doors: Point[];
     polygon: Point[] | null;
   }): Pick<RoomResult, "distanceFt" | "distanceMethod" | "route">;
 }
@@ -124,9 +124,9 @@ export async function searchRooms(
   let rooms: RoomResult[] = candidates.map((r) => {
     const fb = freeBusy[r.resourceEmail];
     const polygon = r.polygon ? parseJsonArray<Point>(r.polygon) : null;
-    const door: Point | null = r.doorX != null && r.doorY != null ? [r.doorX, r.doorY] : null;
+    const doors = r.doors ? parseJsonArray<Point>(r.doors) : [];
     const available = !fb || fb.error ? null : !overlaps(fb.busy, params.start, params.end);
-    const measured = distance?.measure({ floorId: r.floorId, buildingId: r.buildingId, door, polygon });
+    const measured = distance?.measure({ floorId: r.floorId, buildingId: r.buildingId, doors, polygon });
     const readable = fb && !fb.error;
     return {
       matches: matchesFilters(r) && (!params.availableOnly || available === true),
@@ -142,7 +142,7 @@ export async function searchRooms(
       capacity: r.capacity,
       features: parseJsonArray<string>(r.features),
       polygon: polygon?.length ? polygon : null,
-      door,
+      doors,
       available,
       availabilityError: fb?.error ?? (fb ? undefined : "No free/busy data"),
       busy: (fb?.busy ?? []).filter((b) => overlaps([b], dayStart, dayEnd)),

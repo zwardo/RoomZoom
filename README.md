@@ -47,10 +47,11 @@ A floor is an SVG whose **layer names** mark what matters. Coordinates are the b
 | Layer name | Shape | Meaning |
 | --- | --- | --- |
 | `room-<name>` | rect / polygon / path | Room outline. `<name>` matches the room's email, the part before `@`, or its name |
-| `door-<name>` | any | Door position (optional; the outline's center is used otherwise) |
+| `door-<name>` | any | Door position (optional; the outline's center is used otherwise). Number extra doors `door-<name>-2`, `door-<name>-3`; distances use the nearest door |
 | `desk-<label>` | any | Desk position, e.g. `desk-2-114`. Labels match the desk CSV |
 | `hall` | line / polyline / path | Hallway centerline. Lines whose ends touch another line are joined |
 | `stairs-<key>`, `elevator-<key>` | any | Use the same key on every floor to link floors |
+| `stairs-<key>-down`, `stairs-<key>-up` | any | One flight per floor: `-down` is its top landing on this floor, and links only to `-up` (where it lands) on the floor below |
 | `scale-<n>ft` (or `m`) | line | Drawn over a known real length, which sets the distance scale |
 
 The separator after the kind can be `-`, `_`, `:` or a space, so names survive Figma's and Inkscape's SVG export. Group layers work too. If the SVG has a layer named `annotations`, only layers inside it are read, so drawing layers Figma names after their text (like an outlined "Room D" label) are left alone. In Figma, export with **Include "id" attribute** on, or every layer name is lost.
@@ -72,6 +73,11 @@ npm run import:floor -- --building "Building 2" --floor 4 --svg prisma/floors/bu
 ```
 
 **Traced from a scan:** for buildings with a shared outline in `scripts/floors/shells.ts`, describe the interior in `scripts/floors/specs/<building>-<floor>.ts` (scan-pixel coordinates plus three points fitting the scan to the outline) and run `npm run trace:floor -- building-2-1` (or `--all`). It writes `prisma/floors/<spec>.svg` in the dark palette, with the building's exterior wall, stairs, elevators, and scale identical on every floor. `prisma/floors/building-2-1.svg` has since been edited by hand in Figma, so don't regenerate it (`--all` would overwrite it).
+
+**Stairs in Buildings 1 and 2:**
+
+- **Center stair:** each floor's flight starts at its south end (`stairs-center-down`) and goes down, northward, to the floor below. It lands there at `stairs-center-up`, drawn under the north end of the flight above. Floor 1 draws only that landing, and floor 4 only its own flight.
+- **East and west stairs:** these link floors 2 to 4. Their openings switch sides on floor 1, so floor 1 marks them `stairs-west-unlinked` and `stairs-east-unlinked`. Routes to or from floor 1 take the elevator or the center stair.
 
 `npm run db:seed` imports every `prisma/floors/building-<n>-<floor>.svg`. A room outline only links to a room that exists in the catalog with a matching name or email, so add new bookable rooms to `data/samples/rooms.csv` (or sync them from Google) before seeding.
 

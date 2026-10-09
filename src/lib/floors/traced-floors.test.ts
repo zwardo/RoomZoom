@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { SHELLS } from "../../../scripts/floors/shells";
+import { createDistanceMeasurer, type GeoEdge, type GeoFloor, type GeoNode } from "../geo/distance";
 import { buildNavGraph, parseFloorSvg, parseTransform, pathPoints, stripAnnotations } from "./svg-annotations";
 
 const dir = path.join(process.cwd(), "prisma", "floors");
@@ -54,17 +55,25 @@ describe.each(tracedFloors)("Building %s floor %s plan", (building, floor) => {
   const text = readFileSync(path.join(dir, `building-${building}-${floor}.svg`), "utf8");
   const a = parseFloorSvg(text);
 
+  const shell = SHELLS[`Building ${building}` as keyof typeof SHELLS];
+
   it("draws the building's shared exterior wall unchanged", () => {
-    const shell = SHELLS[`Building ${building}` as keyof typeof SHELLS];
     const outline = building === "2" ? floor4Outline() : shell.outline;
     // Canvas added above the shell (e.g. Building 2's pavilion) shifts the outline down.
     const dy = a.height - shell.height;
-    expect(outlinePoints(text)).toEqual(outline.map(([x, y]) => [x, y + dy]));
+    const drawn = outlinePoints(text);
+    expect(drawn).toHaveLength(outline.length);
+    // Figma re-exports can nudge a vertex by a fraction of a pixel.
+    drawn.forEach(([x, y], i) => {
+      expect(x).toBeCloseTo(outline[i][0], 0);
+      expect(y).toBeCloseTo(outline[i][1] + dy, 0);
+    });
   });
 
-  it("shares Building 2 floor 4's width and 240 ft scale", () => {
-    expect(a.width).toBe(4688);
-    expect(a.scale).toEqual({ feet: 240, lengthPx: 4688 });
+  it("shares the building's width and scale", () => {
+    const { feet, from, to } = shell.scale;
+    expect(a.width).toBe(shell.width);
+    expect(a.scale).toEqual({ feet, lengthPx: Math.hypot(to[0] - from[0], to[1] - from[1]) });
     expect(a.warnings).toEqual([]);
   });
 
@@ -79,14 +88,63 @@ describe.each(tracedFloors)("Building %s floor %s plan", (building, floor) => {
     expect(a.rooms.length).toBeGreaterThan(0);
     for (const room of a.rooms) {
       expect(room.polygon!.length).toBeGreaterThanOrEqual(3);
-      expect(room.door).not.toBeNull();
+      expect(room.doors.length).toBeGreaterThan(0);
     }
   });
 
   it("joins every hallway to the building's stairs and elevator", () => {
     const g = buildNavGraph(a.halls, a.connectors);
     expect(reachesEveryNode(g)).toBe(true);
-    expect(g.nodes.filter((n) => n.connectorKey).map((n) => n.connectorKey).sort()).toEqual(["elevator-main", "stairs-east", "stairs-west"]);
+    expect(g.nodes.filter((n) => n.connectorKey).map((n) => n.connectorKey).sort()).toEqual(expectedConnectors(Number(floor)));
+  });
+});
+
+/**
+ * Every floor but the top has the center stair's landing from above ("-up"), and every floor
+ * but floor 1 its own flight down ("-down"). Floor 1's east and west stairs open on the other
+ * side, so they're left unlinked and routes to floor 1 take the elevator or center stair.
+ */
+function expectedConnectors(floor: number) {
+  return [
+    "elevator-main",
+    ...(floor > 1 ? ["stairs-center-down"] : []),
+    ...(floor < 4 ? ["stairs-center-up"] : []),
+    ...(floor === 1 ? ["stairs-east-unlinked", "stairs-west-unlinked"] : ["stairs-east", "stairs-west"]),
+  ];
+}
+
+describe.each(["1", "2"])("Building %s floors", (building) => {
+  const plans = [1, 2, 3, 4].map((level) => {
+    const a = parseFloorSvg(readFileSync(path.join(dir, `building-${building}-${level}.svg`), "utf8"));
+    return { level, a, graph: buildNavGraph(a.halls, a.connectors) };
+  });
+  const geoFloors: GeoFloor[] = plans.map(({ level }) => ({ id: `f${level}`, buildingId: building, level, feetPerPixel: 1 }));
+
+  /** Walking route from the top floor's first desk to a desk on `level`, without some connectors. */
+  function route(level: number, without: RegExp | null) {
+    const nodes: GeoNode[] = [];
+    const edges: GeoEdge[] = [];
+    for (const p of plans) {
+      const id = (i: number) => `f${p.level}:${i}`;
+      const dropped = new Set(p.graph.nodes.flatMap((n, i) => (without && n.connectorKey && without.test(n.connectorKey) ? [i] : [])));
+      p.graph.nodes.forEach((n, i) => !dropped.has(i) && nodes.push({ id: id(i), floorId: `f${p.level}`, x: n.x, y: n.y, connectorKey: n.connectorKey }));
+      p.graph.edges.forEach(([s, t]) => !dropped.has(s) && !dropped.has(t) && edges.push({ fromId: id(s), toId: id(t) }));
+    }
+    const [start] = plans[3].a.desks;
+    const [end] = plans[level - 1].a.desks;
+    const measure = createDistanceMeasurer({ from: { floorId: "f4", ...start }, floors: geoFloors, nodes, edges, floorChangePenaltyFt: 60 });
+    return measure({ floorId: `f${level}`, ...end });
+  }
+
+  it("reaches floor 1 by the center stair alone, one floor at a time", () => {
+    const m = route(1, /^elevator|^stairs-(east|west)/);
+    expect(m.distanceMethod).toBe("walking");
+    expect(m.route?.map((r) => r.floorId)).toEqual(["f4", "f3", "f2", "f1"]);
+  });
+
+  it("never reaches floor 1 by the east or west stairs", () => {
+    expect(route(1, /^elevator|^stairs-center/).distanceMethod).toBe("estimate");
+    expect(route(2, /^elevator|^stairs-center/).distanceMethod).toBe("walking");
   });
 });
 
@@ -105,7 +163,7 @@ describe("Building 2 floor 4 plan", () => {
     );
     for (const room of a.rooms) {
       expect(room.polygon).toHaveLength(4);
-      expect(room.door).not.toBeNull();
+      expect(room.doors.length).toBeGreaterThan(0);
     }
   });
 
@@ -119,7 +177,7 @@ describe("Building 2 floor 4 plan", () => {
   it("joins every hallway, stair, and elevator into one graph", () => {
     const g = buildNavGraph(a.halls, a.connectors);
     expect(reachesEveryNode(g)).toBe(true);
-    expect(g.nodes.filter((n) => n.connectorKey).map((n) => n.connectorKey)).toEqual(["stairs-west", "stairs-east", "elevator-main"]);
+    expect(g.nodes.filter((n) => n.connectorKey).map((n) => n.connectorKey).sort()).toEqual(expectedConnectors(4));
   });
 
   it("keeps the drawing visible once annotations are stripped", () => {

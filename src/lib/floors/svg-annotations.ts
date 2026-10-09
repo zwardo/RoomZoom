@@ -7,10 +7,13 @@ import type { Point } from "@/lib/rooms/types";
  * which must match the background image's pixel size.
  *
  *   room-<email | email name | room name>   rect/polygon/path: room outline
- *   door-<same key as the room>             any shape: door point (optional, else centroid)
+ *   door-<same key as the room>[-<n>]       any shape: door point (optional, else centroid);
+ *                                           extra doors are numbered, e.g. door-oak-2
  *   desk-<label>                            any shape: desk position, e.g. desk-2-114
  *   hall[-anything]                         line/polyline/path: hallway centerline
  *   stairs-<key> / elevator-<key>           any shape: same key on each floor links floors
+ *   stairs-<key>-down / stairs-<key>-up     any shape: one flight; "-down" on a floor links
+ *                                           only to "-up" on the floor below
  *   scale-<n>ft (or <n>m)                   line: drawn over a known real-world length
  *
  * The separator after the kind can be "-", "_", ":" or a space.
@@ -23,7 +26,8 @@ export interface FloorAnnotation {
   width: number;
   height: number;
   background: { href: string } | null;
-  rooms: { key: string; polygon: Point[] | null; door: Point | null }[];
+  /** `doors` is empty when none are drawn; distances then use the outline's center. */
+  rooms: { key: string; polygon: Point[] | null; doors: Point[] }[];
   desks: { label: string; x: number; y: number }[];
   halls: Point[][];
   connectors: { type: "stairs" | "elevator"; key: string; x: number; y: number }[];
@@ -204,8 +208,8 @@ export function parseFloorSvg(svgText: string): FloorAnnotation {
     scale: null,
     warnings: [],
   };
-  const rooms = new Map<string, { key: string; polygon: Point[] | null; door: Point | null }>();
-  const room = (key: string) => rooms.get(key.toLowerCase()) ?? rooms.set(key.toLowerCase(), { key, polygon: null, door: null }).get(key.toLowerCase())!;
+  const rooms = new Map<string, FloorAnnotation["rooms"][number]>();
+  const room = (key: string) => rooms.get(key.toLowerCase()) ?? rooms.set(key.toLowerCase(), { key, polygon: null, doors: [] }).get(key.toLowerCase())!;
 
   /** All shapes under an element, transformed into viewBox space. */
   function collect(node: XmlNode, m: Matrix): Point[][] {
@@ -256,9 +260,9 @@ export function parseFloorSvg(svgText: string): FloorAnnotation {
       const [first, last] = [outline?.[0], outline?.at(-1)];
       if (outline && first && last && outline.length > 3 && first[0] === last[0] && first[1] === last[1]) outline.pop();
       if (outline) room(key).polygon = outline;
-      else room(key).door ??= center;
+      else if (!room(key).doors.length) room(key).doors.push(center);
     } else if (kind === "door") {
-      room(key).door = center;
+      room(key).doors.push(center);
     } else if (kind === "desk") {
       result.desks.push({ label: key, x: center[0], y: center[1] });
     } else if (kind === "stairs" || kind === "elevator") {
@@ -276,8 +280,24 @@ export function parseFloorSvg(svgText: string): FloorAnnotation {
   }
 
   visit(root, origin, !hasAnnotationsLayer([root]));
-  result.rooms = [...rooms.values()];
+  result.rooms = mergeNumberedDoors([...rooms.values()]);
   return result;
+}
+
+/**
+ * `door-oak-2` first lands on a room keyed "oak-2". When no outline uses that
+ * key but "oak" has one, it's another door of "oak" (so a room really named
+ * "Training Room 2" keeps `door-training-room-2`).
+ */
+function mergeNumberedDoors(rooms: FloorAnnotation["rooms"]): FloorAnnotation["rooms"] {
+  const byKey = new Map(rooms.map((r) => [r.key.toLowerCase(), r]));
+  const extras = rooms
+    .map((r) => ({ r, m: r.key.match(/^(.+?)[\s:_-]+(\d+)$/) }))
+    .filter(({ r, m }) => !r.polygon && m && byKey.get(m[1].toLowerCase())?.polygon)
+    .sort((a, b) => Number(a.m![2]) - Number(b.m![2]));
+  for (const { r, m } of extras) byKey.get(m![1].toLowerCase())!.doors.push(...r.doors);
+  const merged = new Set(extras.map(({ r }) => r));
+  return rooms.filter((r) => !merged.has(r));
 }
 
 /** The SVG without annotation layers (or scripts), for use as the map background. */

@@ -25,7 +25,7 @@ export default async function AdminPage() {
       include: {
         building: true,
         _count: { select: { rooms: true, desks: true, navNodes: true } },
-        rooms: { select: { polygon: true, doorX: true } },
+        rooms: { select: { polygon: true, doors: true } },
       },
       orderBy: [{ building: { name: "asc" } }, { level: "asc" }],
     }),
@@ -68,7 +68,7 @@ export default async function AdminPage() {
             </thead>
             <tbody>
               {floors.map((f) => {
-                const drawn = f.rooms.filter((r) => r.polygon || r.doorX != null).length;
+                const drawn = f.rooms.filter((r) => r.polygon || r.doors).length;
                 return (
                   <tr key={f.id} className="border-b last:border-0">
                     <td className="py-2 pr-4 font-medium">

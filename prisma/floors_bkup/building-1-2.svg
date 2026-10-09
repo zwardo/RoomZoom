@@ -500,16 +500,16 @@
   <g id="rooms">
     <polygon id="room-adams-peak" points="2249.1,282.8 2591.7,282.8 2591.7,486.2 2249.1,486.2"/>
     <circle id="door-adams-peak" cx="2249.1" cy="315.1" r="10"/>
-    <polygon id="room-fuji" points="2249.1,486.2 2591.7,486.2 2591.7,684.9 2249.1,684.9"/>
-    <circle id="door-fuji" cx="2554.2" cy="684.9" r="10"/>
+    <polygon id="room-mt-fuji" points="2249.1,486.2 2591.7,486.2 2591.7,684.9 2249.1,684.9"/>
+    <circle id="door-mt-fuji" cx="2554.2" cy="684.9" r="10"/>
     <polygon id="room-kamet" points="85.9,869.9 212.6,869.9 212.6,1272 85.9,1272"/>
     <circle id="door-kamet" cx="212.6" cy="1077.9" r="10"/>
-    <polygon id="room-tasman" points="1244.9,860.6 1409.2,860.6 1409.2,1077.9 1244.9,1077.9"/>
-    <circle id="door-tasman" cx="1371.6" cy="860.6" r="10"/>
+    <polygon id="room-mt-tasman" points="1244.9,860.6 1409.2,860.6 1409.2,1077.9 1244.9,1077.9"/>
+    <circle id="door-mt-tasman" cx="1371.6" cy="860.6" r="10"/>
     <polygon id="room-leila-peak" points="1409.2,860.6 1559.3,860.6 1559.3,1077.9 1409.2,1077.9"/>
     <circle id="door-leila-peak" cx="1442" cy="860.6" r="10"/>
-    <polygon id="room-jade" points="1244.9,1077.9 1559.3,1077.9 1559.3,1295.1 1244.9,1295.1"/>
-    <circle id="door-jade" cx="1277.8" cy="1295.1" r="10"/>
+    <polygon id="room-jade-mtn" points="1244.9,1077.9 1559.3,1077.9 1559.3,1295.1 1244.9,1295.1"/>
+    <circle id="door-jade-mtn" cx="1277.8" cy="1295.1" r="10"/>
     <polygon id="room-everest" points="1559.3,860.6 1794,860.6 1794,1295.1 1559.3,1295.1"/>
     <circle id="door-everest" cx="1770.5" cy="860.6" r="10"/>
     <polygon id="room-pumori" points="4388.9,879.1 4595.4,879.1 4595.4,1077.9 4388.9,1077.9"/>

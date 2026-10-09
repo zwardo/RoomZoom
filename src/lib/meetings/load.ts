@@ -26,8 +26,8 @@ export async function loadMeetings(
   const locations = new Map<string, RoomLocation>();
   for (const r of rooms) {
     const polygon = r.polygon ? parseJsonArray<Point>(r.polygon) : null;
-    const door: Point | null = r.doorX != null && r.doorY != null ? [r.doorX, r.doorY] : null;
-    const measured = distance?.measure({ floorId: r.floorId, buildingId: r.buildingId, door, polygon });
+    const doors = r.doors ? parseJsonArray<Point>(r.doors) : [];
+    const measured = distance?.measure({ floorId: r.floorId, buildingId: r.buildingId, doors, polygon });
     locations.set(r.resourceEmail.toLowerCase(), {
       roomId: r.id,
       buildingName: r.building.name,

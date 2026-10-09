@@ -99,6 +99,51 @@ describe("createDistanceMeasurer", () => {
   });
 });
 
+describe("stair flights", () => {
+  // Each floor's flight leaves from "c-down" and lands on the floor below at "c-up".
+  //   f3: P3 (0,0) --- c-down (100,0)
+  //   f2: c-up (0,0) --- c-down (100,0)
+  //   f1: c-up (0,0) --- Q1 (100,0)
+  const flights = [
+    node("P3", "f3", 0, 0),
+    node("D3", "f3", 100, 0, "stairs-c-down"),
+    node("U2", "f2", 0, 0, "stairs-c-up"),
+    node("D2", "f2", 100, 0, "stairs-c-down"),
+    node("U1", "f1", 0, 0, "stairs-c-up"),
+    node("Q1", "f1", 100, 0),
+  ];
+  const flightEdges = [
+    { fromId: "P3", toId: "D3" },
+    { fromId: "U2", toId: "D2" },
+    { fromId: "U1", toId: "Q1" },
+  ];
+  const from = (floorId: string) =>
+    createDistanceMeasurer({ from: { floorId, x: 0, y: 0 }, floors, nodes: flights, edges: flightEdges, floorChangePenaltyFt: 60 });
+
+  it("links a floor's top landing only to the bottom landing one level down", () => {
+    // f3: walk 100 to the stair, one flight, f2: walk 100 to the next stair, one flight, f1: walk 100.
+    const m = from("f3")({ floorId: "f1", x: 100, y: 0 });
+    expect(m.distanceFt).toBeCloseTo(100 + 60 + 100 + 60 + 100);
+    expect(m.route?.map((r) => r.floorId)).toEqual(["f3", "f2", "f1"]);
+  });
+
+  it("climbs the same flights in reverse", () => {
+    // Starting on f1's bottom landing: one flight, f2: walk 100, one flight, f3: walk 100.
+    expect(from("f1")({ floorId: "f3", x: 0, y: 0 }).distanceFt).toBeCloseTo(60 + 100 + 60 + 100);
+  });
+
+  it("doesn't skip floors or join landings that share a suffix", () => {
+    const skip = createDistanceMeasurer({
+      from: { floorId: "f3", x: 0, y: 0 },
+      floors,
+      nodes: [flights[0], flights[1], flights[4], flights[5]],
+      edges: [flightEdges[0], flightEdges[2]],
+      floorChangePenaltyFt: 60,
+    });
+    expect(skip({ floorId: "f1", x: 100, y: 0 }).distanceMethod).toBe("estimate");
+  });
+});
+
 describe("centroid", () => {
   it("averages polygon vertices", () => {
     expect(
