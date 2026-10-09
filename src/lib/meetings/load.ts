@@ -30,6 +30,7 @@ export async function loadMeetings(
     const measured = distance?.measure({ floorId: r.floorId, buildingId: r.buildingId, doors, polygon });
     locations.set(r.resourceEmail.toLowerCase(), {
       roomId: r.id,
+      email: r.resourceEmail.toLowerCase(),
       buildingName: r.building.name,
       floorId: r.floorId,
       floorName: r.floor?.name ?? null,

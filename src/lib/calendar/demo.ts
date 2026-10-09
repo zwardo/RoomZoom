@@ -8,6 +8,7 @@ import {
   type CreateMeetingInput,
   type Meeting,
   overlaps,
+  type RemoveRoomInput,
   type RoomAvailability,
 } from "./types";
 
@@ -92,6 +93,11 @@ function book(roomEmail: string, start: string, end: string) {
   const list = store.bookings.get(roomEmail) ?? [];
   list.push({ start, end });
   store.bookings.set(roomEmail, list);
+}
+
+function unbook(roomEmail: string, start: string, end: string) {
+  const list = store.bookings.get(roomEmail) ?? [];
+  store.bookings.set(roomEmail, list.filter((b) => b.start !== start || b.end !== end));
 }
 
 export class DemoCalendarProvider implements CalendarProvider {
@@ -206,11 +212,23 @@ export class DemoCalendarProvider implements CalendarProvider {
     const meeting = await this.getMeeting(input.eventId);
     if (!meeting) throw new HttpError(404, "Meeting not found");
     if (!meeting.canModify) throw new HttpError(403, "Only the organizer can book a room for this meeting.");
-    if (input.replaceExisting) meeting.rooms = [];
-    meeting.rooms = meeting.rooms.filter((r) => r.email !== input.roomEmail);
+    const replaced = new Set(input.replaceEmails?.map((e) => e.toLowerCase()));
+    for (const r of meeting.rooms) if (replaced.has(r.email.toLowerCase())) unbook(r.email, meeting.start, meeting.end);
+    meeting.rooms = meeting.rooms.filter((r) => r.email !== input.roomEmail && !replaced.has(r.email.toLowerCase()));
     meeting.rooms.push({ email: input.roomEmail, name: input.roomName, status: "accepted" });
-    meeting.location = input.roomName;
+    meeting.location = meeting.rooms.map((r) => r.name).join(", ");
     book(input.roomEmail, meeting.start, meeting.end);
+    return meeting;
+  }
+
+  async removeRoomFromMeeting(input: RemoveRoomInput) {
+    const meeting = await this.getMeeting(input.eventId);
+    if (!meeting) throw new HttpError(404, "Meeting not found");
+    if (!meeting.canModify) throw new HttpError(403, "Only the organizer can change this meeting's rooms.");
+    const email = input.roomEmail.toLowerCase();
+    meeting.rooms = meeting.rooms.filter((r) => r.email.toLowerCase() !== email);
+    meeting.location = meeting.rooms.map((r) => r.name).join(", ") || undefined;
+    unbook(input.roomEmail, meeting.start, meeting.end);
     return meeting;
   }
 

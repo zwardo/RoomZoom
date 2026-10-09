@@ -10,12 +10,18 @@ const bookingSchema = z
     end: z.iso.datetime({ offset: true }),
     /** Present when adding the room to an existing meeting. */
     eventId: z.string().min(1).optional(),
-    replaceExisting: z.boolean().optional(),
+    /** Rooms on the meeting that the new room replaces. */
+    replaceEmails: z.array(z.email()).max(20).optional(),
     title: z.string().trim().max(200).optional(),
     guests: z.array(z.email()).max(50).optional(),
   })
   .refine((v) => Date.parse(v.end) > Date.parse(v.start), { message: "End must be after start" })
   .refine((v) => Date.parse(v.end) > Date.now(), { message: "That time has already passed" });
+
+const removalSchema = z.object({
+  eventId: z.string().min(1),
+  roomEmail: z.email(),
+});
 
 export const POST = apiHandler(async (req, user) => {
   const parsed = bookingSchema.safeParse(await req.json().catch(() => null));
@@ -46,7 +52,7 @@ export const POST = apiHandler(async (req, user) => {
         eventId: existing.id,
         roomEmail: room.resourceEmail,
         roomName: room.name,
-        replaceExisting: input.replaceExisting,
+        replaceEmails: input.replaceEmails,
       })
     : await calendar.createMeeting({
         title: input.title || "Meeting",
@@ -63,4 +69,20 @@ export const POST = apiHandler(async (req, user) => {
       ? `${room.name} is booked for "${meeting.title}".`
       : `${room.name} was invited to "${meeting.title}". Google confirms room bookings within a few seconds; the status shows on My meetings.`;
   return Response.json({ meeting, message }, { status: existing ? 200 : 201 });
+});
+
+/** Takes a room off a meeting. Off-campus rooms aren't in the catalog, so they're addressed by email. */
+export const DELETE = apiHandler(async (req, user) => {
+  const parsed = removalSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid request");
+  const input = parsed.data;
+
+  const calendar = await getCalendar(user);
+  const existing = await calendar.getMeeting(input.eventId);
+  if (!existing) throw new HttpError(404, "Meeting not found");
+  const room = existing.rooms.find((r) => r.email.toLowerCase() === input.roomEmail.toLowerCase());
+  if (!room) throw new HttpError(404, "That room isn't on this meeting");
+
+  const meeting = await calendar.removeRoomFromMeeting({ eventId: existing.id, roomEmail: room.email });
+  return Response.json({ meeting, message: `${room.name} was removed from "${meeting.title}".` });
 });

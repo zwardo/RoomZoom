@@ -82,6 +82,9 @@
   --color-map-selected: var(--map-selected);
   --color-map-desk: var(--map-desk);
   --color-map-route: var(--map-route);
+  /* Accent tints flattened onto XDark, for surfaces that float over the map. */
+  --color-rooms-accent-tint-20: color-mix(in srgb, var(--color-rooms-accent) 20%, var(--color-rooms-xdark));
+  --color-rooms-accent-tint-30: color-mix(in srgb, var(--color-rooms-accent) 30%, var(--color-rooms-xdark));
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

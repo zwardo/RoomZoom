@@ -40,6 +40,7 @@ export interface RoomResult {
 /** Where a meeting's booked room is, relative to the viewer's desk. */
 export interface RoomLocation {
   roomId: string;
+  email: string;
   buildingName: string;
   floorId: string | null;
   floorName: string | null;

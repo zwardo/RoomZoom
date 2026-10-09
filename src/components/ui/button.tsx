@@ -19,6 +19,7 @@ export const buttonVariants = cva(
         solid: "border-rooms-light bg-rooms-light font-medium text-rooms-xdark hover:bg-rooms-pale hover:border-rooms-pale",
         outline: "border border-rooms-light/30 text-rooms-light hover:bg-rooms-light/20",
         ghost: "border-transparent text-rooms-light hover:bg-rooms-light/20",
+        accentGhost: "border-transparent text-rooms-accent hover:bg-rooms-accent/20 active:bg-rooms-accent/30",
         destructive: "border-dashed border-rooms-warn text-rooms-warn hover:border-solid active:bg-rooms-warn/20",
         link: "border-transparent text-primary underline-offset-4 hover:underline",
       },

@@ -9,6 +9,7 @@ import type {
   CreateMeetingInput,
   HarvestedRoom,
   Meeting,
+  RemoveRoomInput,
   RoomAvailability,
 } from "./types";
 
@@ -36,6 +37,16 @@ export function toMeeting(event: calendar_v3.Schema$Event): Meeting {
     isOrganizer,
     canModify: isOrganizer || Boolean(event.guestsCanModify),
   };
+}
+
+/**
+ * The event location after a room change: the rooms' names, unless the
+ * organizer set a location of their own (one that isn't the old room names).
+ */
+function roomLocation(event: calendar_v3.Schema$Event, before: Meeting, roomNames: string[]) {
+  const previous = before.rooms.map((r) => r.name);
+  const fromRooms = !event.location || previous.includes(event.location) || event.location === previous.join(", ");
+  return fromRooms ? roomNames.join(", ") : event.location;
 }
 
 function isRelevant(event: calendar_v3.Schema$Event) {
@@ -138,18 +149,38 @@ export class GoogleCalendarProvider implements CalendarProvider {
     if (!meeting.canModify) {
       throw new HttpError(403, "Only the organizer can book a room for this meeting.");
     }
-    const attendees = (event.attendees ?? []).filter(
-      (a) => a.email?.toLowerCase() !== input.roomEmail && !(input.replaceExisting && a.resource),
-    );
+    const roomEmail = input.roomEmail.toLowerCase();
+    const replaced = new Set(input.replaceEmails?.map((e) => e.toLowerCase()));
+    const drop = (email: string | null | undefined) => {
+      const e = email?.toLowerCase() ?? "";
+      return e === roomEmail || replaced.has(e);
+    };
+    const attendees = (event.attendees ?? []).filter((a) => !(a.resource && drop(a.email)));
     attendees.push({ email: input.roomEmail, resource: true });
+    const names = [...meeting.rooms.filter((r) => !drop(r.email)).map((r) => r.name), input.roomName];
     const res = await this.cal.events.patch({
       calendarId: "primary",
       eventId: input.eventId,
       sendUpdates: "all",
-      requestBody: {
-        attendees,
-        location: input.replaceExisting || !event.location ? input.roomName : event.location,
-      },
+      requestBody: { attendees, location: roomLocation(event, meeting, names) },
+    });
+    return toMeeting(res.data);
+  }
+
+  async removeRoomFromMeeting(input: RemoveRoomInput) {
+    const { data: event } = await this.cal.events.get({ calendarId: "primary", eventId: input.eventId });
+    const meeting = toMeeting(event);
+    if (!meeting.canModify) {
+      throw new HttpError(403, "Only the organizer can change this meeting's rooms.");
+    }
+    const roomEmail = input.roomEmail.toLowerCase();
+    const attendees = (event.attendees ?? []).filter((a) => !(a.resource && a.email?.toLowerCase() === roomEmail));
+    const names = meeting.rooms.filter((r) => r.email.toLowerCase() !== roomEmail).map((r) => r.name);
+    const res = await this.cal.events.patch({
+      calendarId: "primary",
+      eventId: input.eventId,
+      sendUpdates: "all",
+      requestBody: { attendees, location: roomLocation(event, meeting, names) },
     });
     return toMeeting(res.data);
   }

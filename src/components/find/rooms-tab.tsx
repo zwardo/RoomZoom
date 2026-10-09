@@ -7,6 +7,7 @@ import { LocalTimeRange } from "@/components/local-time";
 import { type HoveredMeeting, useHoveredMeetingId } from "@/components/meetings/hovered-meeting";
 import { groupFeatures } from "@/components/rooms/room-card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { Meeting } from "@/lib/calendar/types";
@@ -78,11 +79,13 @@ const SlotCell = memo(function SlotCell({
   showMeeting,
   box,
   onBook,
+  onRemove,
   onHover,
 }: {
   room: RoomResult;
   meeting: Meeting;
   status: SlotStatus;
+  /** Free and changeable: the cell books the room. Booked and changeable: it offers Remove room on hover. */
   bookable: boolean;
   dimmed: boolean;
   /** Names the meeting in the cell, for when it isn't beside its meeting card. */
@@ -90,16 +93,18 @@ const SlotCell = memo(function SlotCell({
   /** Where the row sits when it's level with its meeting card. */
   box?: RowBox;
   onBook: (room: RoomResult, meeting: Meeting) => void;
+  onRemove: (room: RoomResult, meeting: Meeting) => void;
   /** Keyboard focus; the grid tracks the pointer by row. */
   onHover: (meetingId: string | null) => void;
 }) {
   const style = box && { top: box.top, height: box.height };
   const tooSmall = status === "available" && room.capacity != null && room.capacity < meeting.acceptedCount;
+  const removable = bookable && status === "booked";
   const when = <LocalTimeRange start={meeting.start} end={meeting.end} />;
   const content = (
     <>
       <span className="sr-only">
-        {bookable ? `Book ${room.name} for ` : `${room.name}, `}
+        {bookable && !removable ? `Book ${room.name} for ` : `${room.name}, `}
         {meeting.title}, {when}:{" "}
       </span>
       <span className="flex w-full items-center justify-between gap-2">
@@ -122,6 +127,18 @@ const SlotCell = memo(function SlotCell({
           {when}
         </span>
       )}
+      {removable && (
+        <Button
+          variant="accentGhost"
+          size="sm"
+          onClick={() => onRemove(room, meeting)}
+          onFocus={() => onHover(meeting.id)}
+          onBlur={() => onHover(null)}
+          className="mt-auto -mb-1 -ml-2.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          Remove room
+        </Button>
+      )}
     </>
   );
   const className = cn(
@@ -131,9 +148,9 @@ const SlotCell = memo(function SlotCell({
     style ? "absolute inset-x-0" : "min-h-28",
   );
 
-  if (!bookable) {
+  if (!bookable || removable) {
     return (
-      <div className={className} style={style}>
+      <div className={cn(className, removable && "group hover:opacity-100 has-focus-visible:opacity-100")} style={style}>
         {content}
       </div>
     );
@@ -231,26 +248,30 @@ export function RoomsTab({
   data,
   meetings,
   meetingsScroller,
-  selectedMeetingId,
+  selectedMeeting,
   isFavorite,
   onToggleFavorite,
   freeOnly,
   hovered,
   onBook,
+  onRemove,
 }: {
   data: SearchResponse;
   /** The meetings listed on the left, one row each. */
   meetings: Meeting[];
   /** The meetings list's scroll container, which the rows line up with. */
   meetingsScroller: HTMLElement | null;
-  selectedMeetingId: string | null;
+  /** Its booked rooms lead the columns. */
+  selectedMeeting: Meeting | null;
   isFavorite: (room: RoomResult) => boolean;
   onToggleFavorite: (room: RoomResult) => void;
   freeOnly: boolean;
   /** Set to the meeting whose row is under the pointer or has focus. */
   hovered: HoveredMeeting;
   onBook: (room: RoomResult, meeting: Meeting) => void;
+  onRemove: (room: RoomResult, meeting: Meeting) => void;
 }) {
+  const selectedMeetingId = selectedMeeting?.id ?? null;
   const [grid, setGrid] = useState<HTMLDivElement | null>(null);
   const alignment = useRowAlignment(meetingsScroller, grid);
   const [now] = useState(() => Date.now());
@@ -264,7 +285,7 @@ export function RoomsTab({
 
   useEffect(() => () => hovered.set(null), [hovered]);
 
-  const columns = roomColumns(data, { isFavorite, freeOnly, meetingSelected: selectedMeetingId !== null });
+  const columns = roomColumns(data, { isFavorite, freeOnly, meeting: selectedMeeting });
   const covered = new Set(data.coveredIds);
   const aligned = alignment?.mode === "aligned" ? alignment : null;
   const selectedRow = selectedMeetingId ? aligned?.rows.get(selectedMeetingId) : undefined;
@@ -299,11 +320,12 @@ export function RoomsTab({
             room={room}
             meeting={meeting}
             status={status}
-            bookable={status === "available" && meeting.canModify && Date.parse(meeting.end) > now}
+            bookable={(status === "available" || status === "booked") && meeting.canModify && Date.parse(meeting.end) > now}
             dimmed={selectedMeetingId !== null && meeting.id !== selectedMeetingId && meeting.id !== hoveredId}
             showMeeting={!aligned}
             box={box}
             onBook={onBook}
+            onRemove={onRemove}
             onHover={hover}
           />
         </li>

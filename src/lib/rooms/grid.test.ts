@@ -69,7 +69,7 @@ describe("roomColumns", () => {
   const names = (list: RoomResult[]) => list.map((r) => r.name);
 
   it("lists favorites, then recent rooms, then best matches by how many meetings they're free for", () => {
-    expect(names(roomColumns(data, { isFavorite, freeOnly: false, meetingSelected: false }))).toEqual([
+    expect(names(roomColumns(data, { isFavorite, freeOnly: false, meeting: null }))).toEqual([
       "Cedar",
       "Elm",
       "Birch",
@@ -79,7 +79,7 @@ describe("roomColumns", () => {
   });
 
   it("leads with the best matches in search order once a meeting is selected", () => {
-    expect(names(roomColumns(data, { isFavorite, freeOnly: false, meetingSelected: true }))).toEqual([
+    expect(names(roomColumns(data, { isFavorite, freeOnly: false, meeting: { rooms: [] } }))).toEqual([
       "Aspen",
       "Birch",
       "Dogwood",
@@ -89,11 +89,23 @@ describe("roomColumns", () => {
   });
 
   it("drops busy favorites and recent rooms when only free rooms are wanted", () => {
-    expect(names(roomColumns(data, { isFavorite, freeOnly: true, meetingSelected: true }))).toEqual([
+    expect(names(roomColumns(data, { isFavorite, freeOnly: true, meeting: { rooms: [] } }))).toEqual([
       "Aspen",
       "Birch",
       "Dogwood",
       "Elm",
     ]);
+  });
+
+  it("puts the selected meeting's booked rooms first, even ones the filters would hide", () => {
+    const meeting = {
+      rooms: [
+        { email: "CEDAR@rooms", name: "Cedar", status: "accepted" },
+        { email: "elm@rooms", name: "Elm", status: "needsAction" },
+        { email: "birch@rooms", name: "Birch", status: "declined" },
+        { email: "faraway@rooms", name: "Far Away", status: "accepted" },
+      ],
+    };
+    expect(names(roomColumns(data, { isFavorite, freeOnly: true, meeting }))).toEqual(["Cedar", "Elm", "Aspen", "Birch", "Dogwood"]);
   });
 });

@@ -79,8 +79,13 @@ export interface AddRoomInput {
   eventId: string;
   roomEmail: string;
   roomName: string;
-  /** Remove rooms already on the event (swap instead of adding a second room). */
-  replaceExisting?: boolean;
+  /** Rooms already on the event to take off in the same update (a switch rather than an add). */
+  replaceEmails?: string[];
+}
+
+export interface RemoveRoomInput {
+  eventId: string;
+  roomEmail: string;
 }
 
 export interface HarvestedRoom {
@@ -96,6 +101,7 @@ export interface CalendarProvider {
   freeBusy(roomEmails: string[], timeMin: string, timeMax: string): Promise<Record<string, RoomAvailability>>;
   createMeeting(input: CreateMeetingInput): Promise<Meeting>;
   addRoomToMeeting(input: AddRoomInput): Promise<Meeting>;
+  removeRoomFromMeeting(input: RemoveRoomInput): Promise<Meeting>;
   /** Rooms seen as attendees on the user's recent events (catalog fallback without admin access). */
   harvestRooms(daysBack: number): Promise<HarvestedRoom[]>;
 }
