@@ -12,9 +12,9 @@ import type { Meeting } from "@/lib/calendar/types";
 import type { MeetingView } from "@/lib/meetings/load";
 import { ROOM_PRIORITIES, type RoomPriority, type RoomResult } from "@/lib/rooms/types";
 import { fromInputs, nextHalfHour, toDateInput, toTimeInput } from "@/lib/time";
-import { BookDialog } from "./book-dialog";
+import { BookDialog, type BookingRequest, type BookingResult, bookRoom, type RemovalRequest, RemoveRoomDialog } from "./book-dialog";
 import type { SlotForm } from "./filters-panel";
-import { RoomsPanel, type RoomsView } from "./rooms-panel";
+import { type RoomAction, RoomsPanel, type RoomsView } from "./rooms-panel";
 import { DEFAULT_FILTERS, type RoomFilters, useRoomSearch } from "./use-room-search";
 
 const UPCOMING_DAYS = 7;
@@ -48,6 +48,11 @@ function backToBackBefore(meeting: Meeting, views: MeetingView[]) {
       })
       .sort((a, b) => b.meeting.end.localeCompare(a.meeting.end))[0] ?? null
   );
+}
+
+/** The meeting room to show first: the first one on the map, else the first one booked. */
+function defaultRoomEmail(v: MeetingView) {
+  return v.location?.email ?? v.meeting.rooms[0]?.email.toLowerCase() ?? null;
 }
 
 function defaultSlotForm(): SlotForm {
@@ -116,12 +121,16 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
 
   const [meetingId, setMeetingId] = useState<string | null>(initialMeetingId);
   const [view, setView] = useState<RoomsView>("map");
-  const [roomId, setRoomId] = useState<string | null>(null);
+  /** Lower-cased resource email of the room in the map card. */
+  const [roomEmail, setRoomEmail] = useState<string | null>(null);
   const [mapFloorId, setMapFloorId] = useState<string | null>(null);
   const [slotForm, setSlotForm] = useState<SlotForm>(defaultSlotForm);
   const [filters, setFilters] = useState<RoomFilters>(() => ({ ...DEFAULT_FILTERS, priority: loadPriority() }));
-  /** A room to book, for `meeting` (a Rooms tab cell) or else the selected meeting or time slot. */
-  const [booking, setBooking] = useState<{ room: RoomResult; meeting?: Meeting } | null>(null);
+  /** A booking waiting on its confirmation dialog. */
+  const [booking, setBooking] = useState<BookingRequest | null>(null);
+  const [removing, setRemoving] = useState<RemovalRequest | null>(null);
+  /** A room being booked straight from its card (a meeting's first room needs no confirming). */
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [hoveredMeeting] = useState(createHoveredMeeting);
   const [meetingsScroller, setMeetingsScroller] = useState<HTMLDivElement | null>(null);
   const [notice, setNotice] = useState<{ message: string; error?: boolean } | null>(null);
@@ -171,8 +180,53 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
         setNotice({ message: err instanceof Error ? err.message : "Couldn't update favorites", error: true });
       });
   };
-  const selectedRoom = search.data?.rooms.find((r) => r.id === roomId) ?? null;
-  const bookingMeeting = booking ? (booking.meeting ?? meeting) : null;
+  const selectRoom = (email: string | null) => {
+    const key = email?.toLowerCase() ?? null;
+    setRoomEmail(key);
+    const floorId = search.data?.rooms.find((r) => r.email.toLowerCase() === key)?.floorId;
+    if (floorId) setMapFloorId(floorId);
+  };
+
+  /** Refreshes after a room change; `showEmail` moves the map card to that room (undefined leaves it). */
+  const applyRoomChange = (result: BookingResult, showEmail?: string | null) => {
+    setNotice(result);
+    setSearchReload((k) => k + 1);
+    setMeetingsReload((k) => k + 1);
+    if (showEmail !== undefined) selectRoom(showEmail);
+  };
+
+  const bookFirstRoom = async (room: RoomResult, m: Meeting) => {
+    setPendingEmail(room.email);
+    try {
+      const result = await bookRoom({ roomId: room.id, start: m.start, end: m.end, eventId: m.id });
+      applyRoomChange(result, m.id === meetingId ? room.email : undefined);
+    } catch (err) {
+      setNotice({ message: err instanceof Error ? err.message : "Booking failed", error: true });
+    } finally {
+      setPendingEmail(null);
+    }
+  };
+
+  /**
+   * Books `room` for `m` (or a new meeting in the time slot). A meeting's first room books straight
+   * from the map card; the Rooms tab and changes to booked meetings always confirm.
+   */
+  const requestBooking = (kind: "book" | "add" | "switch", room: RoomResult, m: Meeting | null, confirm = false) => {
+    setNotice(null);
+    if (!m) setBooking({ mode: "create", room, meeting: null });
+    else if (m.rooms.length) setBooking({ mode: "change", room, meeting: m, preselect: kind === "book" ? undefined : kind });
+    else if (confirm) setBooking({ mode: "book", room, meeting: m });
+    else void bookFirstRoom(room, m);
+  };
+
+  const onRoomAction = (action: RoomAction) => {
+    if (action.kind === "remove") {
+      setNotice(null);
+      if (meeting) setRemoving({ room: action.room, meeting });
+      return;
+    }
+    requestBooking(action.kind, action.room, meeting);
+  };
 
   const today = new Date(openedAt).toDateString();
   const showsToday = !date || date.toDateString() === today;
@@ -195,13 +249,13 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
     setNotice(null);
     if (!v) {
       setMeetingId(null);
-      setRoomId(null);
+      setRoomEmail(null);
       setFilters((f) => ({ ...f, minCapacity: DEFAULT_FILTERS.minCapacity }));
       return;
     }
     setMeetingId(v.meeting.id);
     setFilters((f) => ({ ...f, minCapacity: v.meeting.attendeeCount }));
-    setRoomId(v.location?.roomId ?? null);
+    setRoomEmail(defaultRoomEmail(v));
     if (v.location?.floorId) setMapFloorId(v.location.floorId);
     if (opts.focusRoom) setView("map");
   }, []);
@@ -211,7 +265,7 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
   if (!appliedInitial && selectedView) {
     setAppliedInitial(true);
     setFilters((f) => ({ ...f, minCapacity: selectedView.meeting.attendeeCount }));
-    setRoomId(selectedView.location?.roomId ?? null);
+    setRoomEmail(defaultRoomEmail(selectedView));
     if (selectedView.location?.floorId) setMapFloorId(selectedView.location.floorId);
   }
 
@@ -263,42 +317,44 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
           data={search.data}
           loading={search.loading}
           error={search.error}
-          selected={selectedRoom}
-          onSelectRoom={(room) => {
-            setRoomId(room?.id ?? null);
-            if (room?.floorId) setMapFloorId(room.floorId);
-          }}
+          selectedEmail={roomEmail}
+          onSelectRoom={selectRoom}
           mapFloorId={mapFloorId}
           onMapFloorChange={setMapFloorId}
-          onBook={(room) => {
-            setNotice(null);
-            setBooking({ room });
-          }}
+          onRoomAction={onRoomAction}
+          pendingEmail={pendingEmail}
           isFavorite={isFavorite}
           onToggleFavorite={toggleFavorite}
           meetings={listed}
           meetingsScroller={meetingsScroller}
           hoveredMeeting={hoveredMeeting}
-          onBookSlot={(room, m) => {
+          onBookSlot={(room, m) => requestBooking("book", room, m, true)}
+          onRemoveSlot={(room, m) => {
             setNotice(null);
-            setBooking({ room, meeting: m });
+            setRemoving({ room, meeting: m });
           }}
           notice={notice && <Alert variant={notice.error ? "error" : undefined}>{notice.message}</Alert>}
         />
       </main>
       <BookDialog
-        room={booking?.room ?? null}
-        start={bookingMeeting?.start ?? slot.start.toISOString()}
-        end={bookingMeeting?.end ?? slot.end.toISOString()}
-        meeting={bookingMeeting}
-        replaceExisting={Boolean(bookingMeeting?.rooms.length)}
+        request={booking}
+        start={booking?.meeting?.start ?? slot.start.toISOString()}
+        end={booking?.meeting?.end ?? slot.end.toISOString()}
         onClose={() => setBooking(null)}
         onBooked={(result) => {
+          const forOther = booking?.meeting && booking.meeting.id !== meetingId;
+          if (!booking?.meeting) setMeetingId(result.meeting.id);
+          applyRoomChange(result, forOther ? undefined : (booking?.room.email ?? null));
           setBooking(null);
-          setNotice(result);
-          setSearchReload((k) => k + 1);
-          setMeetingsReload((k) => k + 1);
-          if (!bookingMeeting) setMeetingId(result.meeting.id);
+        }}
+      />
+      <RemoveRoomDialog
+        request={removing}
+        onClose={() => setRemoving(null)}
+        onRemoved={(result) => {
+          const forOther = removing?.meeting.id !== meetingId;
+          applyRoomChange(result, forOther ? undefined : (result.meeting.rooms[0]?.email ?? null));
+          setRemoving(null);
         }}
       />
       <CreateMeetingDialog
@@ -314,7 +370,7 @@ function RoomFinderScreen({ user, initialMeetingId }: { user: HeaderUser; initia
           if (date && date.toDateString() !== new Date(created.start).toDateString()) setDate(null);
           setMeetingId(created.id);
           setFilters((f) => ({ ...f, minCapacity: created.attendeeCount }));
-          setRoomId(room?.id ?? null);
+          setRoomEmail(room?.email.toLowerCase() ?? null);
           if (room?.floorId) setMapFloorId(room.floorId);
         }}
       />

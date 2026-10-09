@@ -27,6 +27,11 @@ const roomStyles: Record<RoomState, { shape: string; label: string }> = {
 
 const phoneBoothShape = "fill-rooms-phone-booth/20 stroke-rooms-phone-booth hover:fill-rooms-phone-booth/40";
 
+/** Whether a room has an outline or a door to draw on its floor map. */
+export function isDrawn(room: RoomResult) {
+  return Boolean(room.polygon || room.doors.length);
+}
+
 function stateOf(room: RoomResult, selectedId: string | undefined): RoomState {
   if (room.id === selectedId) return "selected";
   if (room.available === true) return "available";
@@ -46,13 +51,18 @@ function bounds(points: Point[]) {
   return { cx: (minX + Math.max(...xs)) / 2, cy: (minY + Math.max(...ys)) / 2, w: Math.max(...xs) - minX, h: Math.max(...ys) - minY };
 }
 
+/**
+ * Figma map area: the floor plan fills its container (fit by width or height,
+ * clear of `insetClassName`, which reserves room for overlaid controls and the
+ * room card). Zooming lets the plan use the whole container, clipped at its edges.
+ */
 export function FloorMap({
   floor,
   rooms,
   desk,
   selected,
   onSelect,
-  showLegend = true,
+  insetClassName,
   className,
 }: {
   floor: FloorSummary;
@@ -60,12 +70,12 @@ export function FloorMap({
   desk: MyDesk | null;
   selected: RoomResult | null;
   onSelect: (room: RoomResult) => void;
-  showLegend?: boolean;
+  /** Padding around the plan at rest, e.g. to clear controls overlaid on the map. */
+  insetClassName?: string;
   className?: string;
 }) {
   const { widthPx: w, heightPx: h } = floor;
-  const mapped = rooms.filter((r) => r.floorId === floor.id && (r.polygon || r.doors.length));
-  const unmapped = rooms.filter((r) => r.floorId === floor.id && !r.polygon && !r.doors.length).length;
+  const mapped = rooms.filter((r) => r.floorId === floor.id && isDrawn(r));
   const deskHere = desk?.floorId === floor.id ? desk : null;
   const route = selected?.route?.find((r) => r.floorId === floor.id)?.points;
   // Marker sizes scale with the drawing so they stay legible on large scans.
@@ -80,14 +90,16 @@ export function FloorMap({
   }
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
-      <div className="relative max-h-full overflow-hidden rounded-lg bg-map-canvas" style={{ aspectRatio: `${w} / ${h}` }}>
-        <TransformWrapper key={floor.id} minScale={1} maxScale={8}>
-          <ZoomControls />
-          <TransformComponent wrapperClass="!h-full !w-full" contentClass="!w-full">
+    <div className={cn("relative size-full overflow-hidden bg-map-canvas", className)}>
+      <TransformWrapper key={floor.id} minScale={1} maxScale={8}>
+        <ZoomControls />
+        <TransformComponent wrapperClass="!size-full" contentClass="!size-full">
+          {/* The library resets the content's padding, so the insets go on a wrapper. */}
+          <div className={cn("size-full", insetClassName)}>
+            {/* The default preserveAspectRatio fits the plan to whichever of width or height runs out first. */}
             <svg
               viewBox={`0 0 ${w} ${h}`}
-              className="h-auto w-full select-none"
+              className="size-full select-none"
               role="group"
               aria-label={`${floor.buildingName} floor ${floor.name} map`}
             >
@@ -190,19 +202,9 @@ export function FloorMap({
                 </g>
               )}
             </svg>
-          </TransformComponent>
-        </TransformWrapper>
-      </div>
-      {showLegend && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <Legend className="border-2 border-rooms-light bg-rooms-light/20">Free</Legend>
-          <Legend className="border-2 border-rooms-warn/60 bg-rooms-warn/10">Busy</Legend>
-          <Legend className="border-2 border-dashed border-rooms-xlight">Unknown</Legend>
-          <Legend className="border-2 border-rooms-accent bg-rooms-accent/20">Selected</Legend>
-          {deskHere && <Legend className="rounded-full bg-rooms-accent">Your desk ({deskHere.label})</Legend>}
-          {unmapped > 0 && <span className="ml-auto">{unmapped} room{unmapped === 1 ? "" : "s"} not drawn on this map yet</span>}
-        </div>
-      )}
+          </div>
+        </TransformComponent>
+      </TransformWrapper>
     </div>
   );
 }
@@ -217,19 +219,11 @@ function NavPoint({ point: [x, y], unit }: { point: Point; unit: number }) {
   );
 }
 
-function Legend({ className, children }: { className: string; children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={cn("size-3 rounded-sm", className)} aria-hidden />
-      {children}
-    </span>
-  );
-}
-
+/** Figma "map-controls wrapper": zoom in, zoom out and reset, stacked top-right. */
 function ZoomControls() {
   const { zoomIn, zoomOut, resetTransform } = useControls();
   return (
-    <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 rounded-lg bg-rooms-dark/90 p-1">
+    <div className="absolute top-3 right-4 z-10 flex flex-col gap-2 rounded-md bg-rooms-medium p-1">
       <IconButton onClick={() => zoomIn()} aria-label="Zoom in">
         <Plus />
       </IconButton>

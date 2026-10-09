@@ -1,8 +1,9 @@
-import { AlertTriangle, PhoneCall, Star, Users, Video, XCircle } from "lucide-react";
+import { AlertTriangle, MapPinOff, PhoneCall, Star, Users, Video } from "lucide-react";
 import type * as React from "react";
 import { LocationMeta } from "@/components/rooms/location-meta";
 import { IconButton } from "@/components/ui/icon-button";
 import { MetaList } from "@/components/ui/meta-list";
+import type { MeetingRoom } from "@/lib/calendar/types";
 import type { RoomResult } from "@/lib/rooms/types";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,23 @@ export function groupFeatures(features: string[]) {
   return { media, phone, other };
 }
 
+/** A room from our catalog, or one on a meeting that isn't (another campus, not mapped yet). */
+export type CardRoom = RoomResult | MeetingRoom;
+
+export function isCatalogRoom(room: CardRoom): room is RoomResult {
+  return "buildingId" in room;
+}
+
+export type RoomCardTone = "default" | "selected" | "booked" | "busy";
+
+/** Figma room-card surfaces. Fills are opaque because the card floats over the map. */
+export const roomCardTones: Record<RoomCardTone, string> = {
+  default: "border-transparent bg-rooms-dark",
+  selected: "border-rooms-accent bg-rooms-xdark",
+  booked: "border-rooms-accent bg-rooms-accent-tint-20",
+  busy: "border-rooms-warn bg-rooms-xdark",
+};
+
 function Info({ icon: Icon, children }: { icon?: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
   return (
     <>
@@ -27,13 +45,63 @@ function Info({ icon: Icon, children }: { icon?: React.ComponentType<{ className
 }
 
 /**
- * Figma "room-card". Selected rooms get the accent outline; busy rooms are
- * dimmed on the Dark surface with a warn x-circle. `action` renders top-right
- * (e.g. the "Book room" button).
+ * Figma "building + floor" and "add. info" rows. Rooms outside the catalog
+ * can't be placed on the map, so they say so instead.
+ */
+export function RoomDetails({ room, needed }: { room: CardRoom; needed?: number }) {
+  if (!isCatalogRoom(room)) {
+    return (
+      <p className="flex items-center gap-1.5 text-xs text-rooms-xpale">
+        <MapPinOff className="size-5 shrink-0 text-rooms-light" aria-hidden />
+        Not on your campus map
+      </p>
+    );
+  }
+  const tooSmall = needed != null && room.capacity != null && room.capacity < needed;
+  const { media, phone, other } = groupFeatures(room.features);
+  return (
+    <>
+      <LocationMeta location={room} />
+      <MetaList
+        className="text-xs text-rooms-xpale"
+        items={[
+          tooSmall ? (
+            <span key="cap" className="inline-flex items-center gap-1 text-rooms-warn">
+              <AlertTriangle className="size-5 shrink-0" aria-hidden />
+              Fits {room.capacity} of {needed}
+            </span>
+          ) : (
+            <Info key="cap" icon={Users}>
+              <span>
+                {room.capacity ?? "?"}
+                <span className="sr-only"> seats</span>
+              </span>
+            </Info>
+          ),
+          media.length > 0 && (
+            <Info key="media" icon={Video}>
+              {media.join(", ")}
+            </Info>
+          ),
+          phone.length > 0 && (
+            <Info key="phone" icon={PhoneCall}>
+              {phone.join(", ")}
+            </Info>
+          ),
+          other.length > 0 && <Info key="other">{other.join(", ")}</Info>,
+        ]}
+      />
+    </>
+  );
+}
+
+/**
+ * Figma "room-card": name, location and amenities, with `action` (buttons
+ * or chips) on the right. `tone` picks the Figma state's outline and fill.
  */
 export function RoomCard({
   room,
-  selected = false,
+  tone = "default",
   needed,
   favorite,
   action,
@@ -42,30 +110,28 @@ export function RoomCard({
   children,
   className,
 }: {
-  room: RoomResult;
-  selected?: boolean;
+  room: CardRoom;
+  tone?: RoomCardTone;
   /** People expected; capacity turns into a warning when the room is smaller. */
   needed?: number;
   /** Shows a star toggle next to the name. */
   favorite?: { on: boolean; onToggle: () => void };
   action?: React.ReactNode;
-  /** Puts `action` in a footer row instead of the top-right corner (for narrow columns). */
+  /** Puts `action` in a footer row instead of beside the details (for narrow columns). */
   stacked?: boolean;
   onSelect?: () => void;
   children?: React.ReactNode;
   className?: string;
 }) {
-  const busy = room.available === false;
-  const tooSmall = needed != null && room.capacity != null && room.capacity < needed;
-  const { media, phone, other } = groupFeatures(room.features);
+  const catalog = isCatalogRoom(room);
   return (
     <article
       aria-label={room.name}
       className={cn(
-        "relative flex flex-col gap-2 overflow-clip rounded-lg border px-4 py-3 transition-colors",
-        selected ? "border-rooms-accent bg-rooms-xdark" : "border-transparent bg-rooms-dark",
-        busy && !selected && "opacity-75",
-        onSelect && !selected && "hover:border-rooms-light",
+        "relative flex gap-4 overflow-clip rounded-lg border px-4 py-2 transition-colors",
+        stacked && "flex-col",
+        roomCardTones[tone],
+        onSelect && tone === "default" && "hover:border-rooms-light",
         className,
       )}
     >
@@ -73,14 +139,14 @@ export function RoomCard({
         <button
           type="button"
           onClick={onSelect}
-          aria-pressed={selected}
+          aria-pressed={tone !== "default"}
           className="absolute inset-0 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
         >
           <span className="sr-only">Show {room.name} on the map</span>
         </button>
       )}
-      <div className={cn("pointer-events-none flex min-w-0 flex-col gap-2", action && !stacked && "pr-32")}>
-        <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+      <div className="pointer-events-none flex min-w-0 flex-1 flex-col gap-1">
+        <h3 className="flex items-center gap-2 text-base font-semibold text-white">
           <span className="truncate">{room.name}</span>
           {favorite && (
             <IconButton
@@ -92,47 +158,14 @@ export function RoomCard({
               <Star className={cn(favorite.on && "fill-current")} />
             </IconButton>
           )}
-          {busy && (
-            <>
-              <XCircle className="size-5 shrink-0 text-rooms-warn" aria-hidden />
-              <span className="sr-only">(busy)</span>
-            </>
-          )}
-          {room.available === null && <span className="text-xs font-normal text-rooms-xlight">availability unknown</span>}
+          {catalog && room.available === null && <span className="text-xs font-normal text-rooms-xlight">availability unknown</span>}
         </h3>
-        <LocationMeta className="text-sm" location={room} />
-        <MetaList
-          className="text-sm text-rooms-xpale"
-          items={[
-            tooSmall ? (
-              <span key="cap" className="inline-flex items-center gap-1 text-rooms-warn">
-                <AlertTriangle className="size-5 shrink-0" aria-hidden />
-                Fits {room.capacity} of {needed}
-              </span>
-            ) : (
-              <Info key="cap" icon={Users}>
-                <span>
-                  {room.capacity ?? "?"}
-                  <span className="sr-only"> seats</span>
-                </span>
-              </Info>
-            ),
-            media.length > 0 && (
-              <Info key="media" icon={Video}>
-                {media.join(", ")}
-              </Info>
-            ),
-            phone.length > 0 && (
-              <Info key="phone" icon={PhoneCall}>
-                {phone.join(", ")}
-              </Info>
-            ),
-            other.length > 0 && <Info key="other">{other.join(", ")}</Info>,
-          ]}
-        />
+        <RoomDetails room={room} needed={needed} />
         {children}
       </div>
-      {action && (stacked ? <div className="relative flex justify-end">{action}</div> : <div className="absolute top-3.5 right-3.5">{action}</div>)}
+      {action && (
+        <div className={cn("relative flex shrink-0 items-center gap-4", stacked ? "justify-end" : "self-start pt-1.5")}>{action}</div>
+      )}
     </article>
   );
 }
